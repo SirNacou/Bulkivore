@@ -1,4 +1,7 @@
 <Solution>
+    <Folder Name="/SolutionItems/">
+        <File Path=".gitignore" />
+    </Folder>
     <Folder Name="/src/">
         <Project Path="src/Bulkivore.Api/Bulkivore.Api.csproj" />
         <Project Path="src/Bulkivore.AppHost/Bulkivore.AppHost.csproj" />
