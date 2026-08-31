@@ -14,7 +14,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Aspire.Hosting.Docker" Version="13.5.3" />
       <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.5.3" />
+      <PackageReference Include="CommunityToolkit.Aspire.Hosting.PostgreSQL.Extensions" Version="13.5.0" />
     </ItemGroup>
 
 </Project>
