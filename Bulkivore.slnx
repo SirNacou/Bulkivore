@@ -1,0 +1,8 @@
+<Solution>
+    <Folder Name="/src/">
+        <Project Path="src/Bulkivore.Api/Bulkivore.Api.csproj" />
+        <Project Path="src/Bulkivore.AppHost/Bulkivore.AppHost.csproj" />
+        <Project Path="src/Bulkivore.ServiceDefaults/Bulkivore.ServiceDefaults.csproj" />
+    </Folder>
+    <Folder Name="/test/" />
+</Solution>
