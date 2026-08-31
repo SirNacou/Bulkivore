@@ -1,6 +1,8 @@
 <Solution>
     <Folder Name="/SolutionItems/">
+        <File Path=".editorconfig" />
         <File Path=".gitignore" />
+        <File Path="Directory.Build.props" />
     </Folder>
     <Folder Name="/src/">
         <Project Path="src/Bulkivore.Api/Bulkivore.Api.csproj" />

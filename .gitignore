@@ -6,3 +6,4 @@ riderModule.iml
 .idea/
 .env*
 !.env.example
+*.sln.DotSettings.user
