@@ -9,7 +9,7 @@ public class GetTableSchemaEndpoint(ISchemaInspector schemaInspector)
 {
     public override void Configure()
     {
-        Get("/api/schema/{TableName}");
+        Get("schema/{TableName}");
         AllowAnonymous();
     }
 

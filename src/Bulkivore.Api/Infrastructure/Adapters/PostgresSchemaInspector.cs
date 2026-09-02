@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Bulkivore.Api.Domain.Schema;
 using Npgsql;
 
@@ -54,7 +53,7 @@ public class PostgresSchemaInspector(IConfiguration configuration) : ISchemaInsp
                               (defaultValue?.StartsWith("nextval(", StringComparison.OrdinalIgnoreCase) ?? false);
 
             var domainType = MapToDomainType(dataType);
-            var errorOrMetadata = ColumnMetadata.Create(name, domainType, isGenerated, length, isNullable);
+            var errorOrMetadata = ColumnMetadata.Create(name, domainType, isNullable, length, isGenerated);
             if (errorOrMetadata.IsError)
                 throw new InvalidOperationException(errorOrMetadata.FirstError.Description);
             columns[name] = errorOrMetadata.Value;
