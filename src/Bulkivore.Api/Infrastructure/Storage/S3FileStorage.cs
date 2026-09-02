@@ -1,23 +1,37 @@
+using System.Net;
+using Amazon.S3;
+using Amazon.S3.Model;
 using Bulkivore.Api.Domain.Ingestion.Ports;
 using Bulkivore.Api.Infrastructure.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Bulkivore.Api.Infrastructure.Storage;
 
-public class S3FileStorage() : IFileStorage
+public class S3FileStorage(IAmazonS3 s3Client, IOptions<StorageOptions> storageOptions) : IFileStorage
 {
-    public Task<string> GenerateUploadUrlAsync(string storageKey, TimeSpan expiresIn, CancellationToken ct = default)
+    private readonly StorageOptions _storageOptions = storageOptions.Value;
+
+    public string GenerateUploadUrl(string storageKey, TimeSpan expiresIn)
     {
-        throw new NotImplementedException();
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _storageOptions.BucketName,
+            Key = storageKey,
+            Expires = DateTime.UtcNow.Add(expiresIn),
+            Verb = HttpVerb.PUT,
+        };
+
+        return s3Client.GetPreSignedURL(request);
     }
 
-    public Task<Stream> OpenReadAsync(string storageKey, CancellationToken ct = default)
+    public async Task<Stream> OpenReadAsync(string storageKey, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var response = await s3Client.GetObjectAsync(_storageOptions.BucketName, storageKey, ct);
+        return response.ResponseStream;
     }
 
     public Task DeleteAsync(string storageKey, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        return s3Client.DeleteObjectAsync(_storageOptions.BucketName, storageKey, ct);
     }
 }
