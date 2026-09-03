@@ -2,6 +2,7 @@
 // The.NET Foundation licenses this file to you under the MIT license.
 
 using Bulkivore.Api.Domain.Ingestion;
+using Bulkivore.Api.Domain.Ingestion.Ports;
 using MiniExcelLibs;
 
 namespace Bulkivore.Api.Infrastructure.Adapters;
