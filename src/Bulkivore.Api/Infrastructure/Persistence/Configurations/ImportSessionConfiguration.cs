@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Bulkivore.Api.Domain.Ingestion;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -40,6 +42,17 @@ public class ImportSessionConfiguration : IEntityTypeConfiguration<ImportSession
         builder
             .Property(x => x.CreatedAt)
             .IsRequired();
+
+        builder
+            .Property(x => x.ColumnMappings)
+            .HasColumnType("jsonb")
+            .HasConversion(
+                v => JsonSerializer.Serialize(v),
+                v => JsonSerializer.Deserialize<Dictionary<string, string>>(v) ?? new Dictionary<string, string>()
+            )
+            .IsRequired();
+
+        builder.Navigation(x => x.ColumnMappings).HasField("_columnMappings");
 
         // Indexes
         builder

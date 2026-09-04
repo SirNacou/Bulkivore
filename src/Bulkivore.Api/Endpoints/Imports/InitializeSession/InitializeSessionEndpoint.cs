@@ -4,14 +4,14 @@ using Bulkivore.Api.Endpoints.Common;
 using Bulkivore.Api.Infrastructure.Persistence;
 using FastEndpoints;
 
-namespace Bulkivore.Api.Endpoints.Imports.Sessions.InitializeSession;
+namespace Bulkivore.Api.Endpoints.Imports.InitializeSession;
 
 public class InitializeSessionEndpoint(IFileStorage fileStorage, BulkivoreDbContext dbContext)
     : Ep.Req<InitializeSessionRequest>.Res<ErrorOr<InitializeSessionResponse>>
 {
     public override void Configure()
     {
-        Group<SessionsGroup>();
+        Group<ImportsGroup>();
         Post("");
         AllowAnonymous();
     }

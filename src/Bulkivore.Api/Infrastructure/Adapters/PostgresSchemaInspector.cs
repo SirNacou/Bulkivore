@@ -7,10 +7,13 @@ public class PostgresSchemaInspector(IConfiguration configuration) : ISchemaInsp
 {
     private readonly string _connectionString = configuration.GetConnectionString("bulkivore-test-db")
                                                 ?? throw new InvalidOperationException(
-                                                    "Missing connection string for test database");
+                                                    "Missing connection string for test database"
+                                                );
 
-    public async Task<IReadOnlyDictionary<string, ColumnMetadata>> InspectTableAsync(string tableName,
-        string schemaName = "public", CancellationToken ct = default)
+    public async Task<IReadOnlyDictionary<string, ColumnMetadata>> InspectTableAsync(
+        string tableName,
+        string schemaName = "public",
+        CancellationToken ct = default)
     {
         var columns = new Dictionary<string, ColumnMetadata>(StringComparer.OrdinalIgnoreCase);
 
@@ -49,30 +52,38 @@ public class PostgresSchemaInspector(IConfiguration configuration) : ISchemaInsp
             var isIdentity = reader.GetString(4).Equals("YES", StringComparison.OrdinalIgnoreCase);
             var defaultValue = reader.IsDBNull(5) ? null : reader.GetString(5);
 
-            var isGenerated = isIdentity ||
-                              (defaultValue?.StartsWith("nextval(", StringComparison.OrdinalIgnoreCase) ?? false);
+            var isGenerated = isIdentity
+                              || (defaultValue?.StartsWith("nextval(", StringComparison.OrdinalIgnoreCase) ?? false);
 
             var domainType = MapToDomainType(dataType);
-            var errorOrMetadata = ColumnMetadata.Create(name, domainType, isNullable, length, isGenerated);
-            if (errorOrMetadata.IsError)
-                throw new InvalidOperationException(errorOrMetadata.FirstError.Description);
+            var errorOrMetadata = ColumnMetadata.Create(
+                name,
+                domainType,
+                isNullable,
+                length,
+                isIdentity,
+                !string.IsNullOrEmpty(defaultValue),
+                isGenerated
+            );
+            if (errorOrMetadata.IsError) throw new InvalidOperationException(errorOrMetadata.FirstError.Description);
             columns[name] = errorOrMetadata.Value;
         }
 
         return columns;
     }
 
-    private static ColumnDataType MapToDomainType(string sqlDataType) => sqlDataType.ToLowerInvariant() switch
-    {
-        "integer" or "int" or "int4" or "smallint" or "int2" => ColumnDataType.Integer,
-        "bigint" or "int8" => ColumnDataType.BigInt,
-        "numeric" or "decimal" or "money" or "real" or "double precision" => ColumnDataType.Decimal,
-        "boolean" or "bool" => ColumnDataType.Boolean,
-        "timestamp with time zone" or "timestamptz" or "timestamp without time zone" => ColumnDataType.DateTime,
-        "date" => ColumnDataType.Date,
-        "uuid" => ColumnDataType.Uuid,
-        "json" or "jsonb" => ColumnDataType.Json,
-        "bytea" => ColumnDataType.Binary,
-        _ => ColumnDataType.Text
-    };
+    private static ColumnDataType MapToDomainType(string sqlDataType) =>
+        sqlDataType.ToLowerInvariant() switch
+        {
+            "integer" or "int" or "int4" or "smallint" or "int2" => ColumnDataType.Integer,
+            "bigint" or "int8" => ColumnDataType.BigInt,
+            "numeric" or "decimal" or "money" or "real" or "double precision" => ColumnDataType.Decimal,
+            "boolean" or "bool" => ColumnDataType.Boolean,
+            "timestamp with time zone" or "timestamptz" or "timestamp without time zone" => ColumnDataType.DateTime,
+            "date" => ColumnDataType.Date,
+            "uuid" => ColumnDataType.Uuid,
+            "json" or "jsonb" => ColumnDataType.Json,
+            "bytea" => ColumnDataType.Binary,
+            _ => ColumnDataType.Text
+        };
 }

@@ -1,4 +1,4 @@
-namespace Bulkivore.Api.Endpoints.Imports.Sessions.InitializeSession;
+namespace Bulkivore.Api.Endpoints.Imports.InitializeSession;
 
 public record InitializeSessionResponse(
     Guid SessionId,

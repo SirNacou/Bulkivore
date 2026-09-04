@@ -6,7 +6,7 @@ using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 using MiniExcel = MiniExcelLibs.MiniExcel;
 
-namespace Bulkivore.Api.Endpoints.Imports.Sessions.InspectSession;
+namespace Bulkivore.Api.Endpoints.Imports.InspectSession;
 
 public class InspectSessionEndpoint(
     BulkivoreDbContext dbContext,
@@ -18,7 +18,7 @@ public class InspectSessionEndpoint(
 {
     public override void Configure()
     {
-        Group<SessionsGroup>();
+        Group<ImportsGroup>();
         Post("{SessionId}/inspect");
         AllowAnonymous();
     }
@@ -69,6 +69,7 @@ public class InspectSessionEndpoint(
 
         return new InspectSessionResponse(
             session.Id,
+            session.Status.ToString(),
             headers,
             suggestedMappings,
             targetColumns,

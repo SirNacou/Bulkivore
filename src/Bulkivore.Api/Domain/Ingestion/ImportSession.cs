@@ -23,6 +23,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
         StorageKey = storageKey;
         Status = ImportSessionStatus.Initialized;
         CreatedAt = DateTimeOffset.UtcNow;
+        _columnMappings = [];
     }
 
     public static ErrorOr<ImportSession> Initialize(
@@ -67,4 +68,37 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
         Status
             .CanTransitionTo(newStatus)
             .ThenDo(_ => Status = newStatus);
+
+    private Dictionary<string, string> _columnMappings;
+    public IReadOnlyDictionary<string, string> ColumnMappings => _columnMappings;
+
+    public ErrorOr<Success> ApplyMappings(
+        IReadOnlyDictionary<string, string> mappings,
+        IReadOnlyList<string> requiredTargetColumns)
+    {
+        if (Status is not (ImportSessionStatus.Uploaded or ImportSessionStatus.Mapped))
+        {
+            return Error.Validation(
+                description: $"Cannot apply mappings when session is in '{Status}' status.",
+                metadata: new() { [nameof(Status)] = Status.ToString() }
+            );
+        }
+
+        if (mappings.Count == 0) return Error.Validation(description: "At least one column mapping must be provided.");
+
+        HashSet<string> mappedTargets = new(mappings.Values, StringComparer.OrdinalIgnoreCase);
+        var missingRequired = requiredTargetColumns.Except(mappedTargets).ToList();
+        if (missingRequired.Count > 0)
+        {
+            return Error.Validation(
+                description: $"The following required columns are missing: {string.Join(", ", missingRequired)}",
+                metadata: new() { [nameof(requiredTargetColumns)] = string.Join(", ", requiredTargetColumns) }
+            );
+        }
+
+        _columnMappings = new Dictionary<string, string>(mappings, StringComparer.OrdinalIgnoreCase);
+        Status = ImportSessionStatus.Mapped;
+
+        return Result.Success;
+    }
 }
