@@ -27,10 +27,7 @@ public class InspectSessionEndpoint(
         InspectSessionRequest req,
         CancellationToken ct)
     {
-        var session = await dbContext.ImportSessions.FirstOrDefaultAsync(
-            x => x.Id == req.SessionId,
-            cancellationToken: ct
-        );
+        var session = await dbContext.ImportSessions.FirstOrDefaultAsync(x => x.Id == req.SessionId, ct);
         if (session == null) return Error.NotFound();
 
         if (!await fileStorage.ExistsAsync(session.StorageKey, ct))
@@ -39,6 +36,8 @@ public class InspectSessionEndpoint(
                 description: "Uploaded file was not found in storage. Please upload the file before inspecting."
             );
         }
+
+        session.ConfirmUpload();
 
         List<string> headers = [];
         List<Dictionary<string, object>> previewRows = [];
@@ -62,11 +61,10 @@ public class InspectSessionEndpoint(
             }
         }
 
-        var targetTableSchema = await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct);
-        var targetColumns = targetTableSchema.Values.ToList();
+        var targetColumns = (await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct))
+            .Values.ToList();
         var suggestedMappings = matcher.AutoMatch(headers, targetColumns);
 
-        session.MarkUploaded();
         await dbContext.SaveChangesAsync(ct);
 
         return new InspectSessionResponse(

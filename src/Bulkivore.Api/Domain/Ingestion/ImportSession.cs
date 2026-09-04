@@ -58,7 +58,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
         return importSession;
     }
 
-    public ErrorOr<Success> MarkUploaded() =>
+    public ErrorOr<Success> ConfirmUpload() =>
         Status
             .CanTransitionTo(ImportSessionStatus.Uploaded)
             .ThenDo(_ => Status = ImportSessionStatus.Uploaded);
