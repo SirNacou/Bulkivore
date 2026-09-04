@@ -1,5 +1,4 @@
 using Bulkivore.Api.Domain.Schema;
-using Bulkivore.Api.Endpoints.Common;
 
 namespace Bulkivore.Api.Endpoints.Ingestion.Services;
 

@@ -24,6 +24,19 @@ public class S3FileStorage(IAmazonS3 s3Client, IOptions<StorageOptions> storageO
         return s3Client.GetPreSignedURL(request);
     }
 
+    public async Task<bool> ExistsAsync(string storageKey, CancellationToken ct = default)
+    {
+        try
+        {
+            await s3Client.GetObjectMetadataAsync(_storageOptions.BucketName, storageKey, ct);
+            return true;
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
+
     public async Task<Stream> OpenReadAsync(string storageKey, CancellationToken ct = default)
     {
         var response = await s3Client.GetObjectAsync(_storageOptions.BucketName, storageKey, ct);

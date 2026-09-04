@@ -33,6 +33,13 @@ public class InspectSessionEndpoint(
         );
         if (session == null) return Error.NotFound();
 
+        if (!await fileStorage.ExistsAsync(session.StorageKey, ct))
+        {
+            return Error.NotFound(
+                description: "Uploaded file was not found in storage. Please upload the file before inspecting."
+            );
+        }
+
         List<string> headers = [];
         List<Dictionary<string, object>> previewRows = [];
 
