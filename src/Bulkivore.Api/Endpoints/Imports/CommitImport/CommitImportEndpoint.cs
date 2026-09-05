@@ -70,7 +70,7 @@ public class CommitImportEndpoint(
 
                 if (row is not IDictionary<string, object> rowDict) continue;
 
-                List<(object? Value, ColumnDataType Type)> rowValues = [];
+                List<ParsedCell> rowValues = [];
                 var hasRowError = false;
 
                 foreach (var (sourceHeader, targetColumnName) in session.ColumnMappings)
@@ -89,22 +89,19 @@ public class CommitImportEndpoint(
                         break;
                     }
 
-                    rowValues.Add((cell, colMeta.DataType));
+                    rowValues.Add(cell);
                 }
 
                 if (hasRowError) continue;
 
                 await writer.StartRowAsync(ct);
-                foreach (var (cell, colType) in rowValues)
+                foreach (var cell in rowValues)
                 {
-                    if (cell is ParsedNull)
-                    {
-                        await writer.WriteNullAsync(ct);
-                    }
-                    else if (cell is ParsedSuccess success)
-                    {
-                        WritePreconvertedValue(writer, success.Value, colType);
-                    }
+                    await cell.Match(
+                        suc => WritePreconvertedValueAsync(writer, suc),
+                        _ => writer.WriteNullAsync(ct),
+                        _ => Task.CompletedTask
+                    );
                 }
 
                 successCount++;
@@ -166,42 +163,42 @@ public class CommitImportEndpoint(
         {
             ColumnDataType.Integer =>
                 int.TryParse(str, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v)
-                    ? new ParsedSuccess(v)
+                    ? new ParsedSuccess(v, ColumnDataType.Integer)
                     : new ParsedError($"'{str}' is not a valid 32-bit integer."),
             ColumnDataType.BigInt =>
                 long.TryParse(str, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v)
-                    ? new ParsedSuccess(v)
+                    ? new ParsedSuccess(v, ColumnDataType.BigInt)
                     : new ParsedError($"'{str}' is not a valid 64-bit integer."),
             ColumnDataType.Decimal =>
                 decimal.TryParse(str, NumberStyles.Number, CultureInfo.InvariantCulture, out var v)
-                    ? new ParsedSuccess(v)
+                    ? new ParsedSuccess(v, ColumnDataType.Decimal)
                     : new ParsedError($"'{str}' is not a valid decimal."),
             ColumnDataType.Boolean =>
                 str switch
                 {
-                    "1" or "true" or "True" or "yes" or "Yes" => new ParsedSuccess(true),
-                    "0" or "false" or "False" or "no" or "No" => new ParsedSuccess(false),
+                    "1" or "true" or "True" or "yes" or "Yes" => new ParsedSuccess(true, ColumnDataType.Boolean),
+                    "0" or "false" or "False" or "no" or "No" => new ParsedSuccess(false, ColumnDataType.Boolean),
                     _ => new ParsedError($"'{str}' is not a valid boolean.")
                 },
             ColumnDataType.DateTime =>
                 DateTime.TryParse(str, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var v)
-                    ? new ParsedSuccess(v)
+                    ? new ParsedSuccess(v, ColumnDataType.DateTime)
                     : new ParsedError($"'{str}' is not a valid timestamp."),
             ColumnDataType.Date =>
                 DateOnly.TryParse(str, CultureInfo.InvariantCulture, out var v)
-                    ? new ParsedSuccess(v)
+                    ? new ParsedSuccess(v, ColumnDataType.Date)
                     : new ParsedError($"'{str}' is not a valid date."),
             ColumnDataType.Uuid =>
                 Guid.TryParse(str, out var v)
-                    ? new ParsedSuccess(v)
+                    ? new ParsedSuccess(v, ColumnDataType.Uuid)
                     : new ParsedError($"'{str}' is not a valid UUID."),
             ColumnDataType.Text or ColumnDataType.Json =>
-                new ParsedSuccess(str),
+                new ParsedSuccess(str, ColumnDataType.Text),
             ColumnDataType.Binary =>
                 TryParseBinary(rawValue, str, out var bytes, out var err)
-                    ? new ParsedSuccess(bytes)
+                    ? new ParsedSuccess(bytes, ColumnDataType.Binary)
                     : new ParsedError(err),
-            _ => new ParsedSuccess(str)
+            _ => new ParsedSuccess(str, ColumnDataType.Text)
         };
     }
 
@@ -225,28 +222,27 @@ public class CommitImportEndpoint(
         }
     }
 
-    private static void WritePreconvertedValue(NpgsqlBinaryImporter writer, object? value, ColumnDataType dataType)
+    private static async Task WritePreconvertedValueAsync(
+        NpgsqlBinaryImporter writer,
+        ParsedSuccess success)
     {
-        if (value is null)
-        {
-            writer.WriteNull();
-            return;
-        }
+        var value = success.Value;
+        var dataType = success.DataType;
 
         switch (dataType)
         {
-            case ColumnDataType.Integer: writer.Write((int)value, NpgsqlDbType.Integer); break;
-            case ColumnDataType.BigInt: writer.Write((long)value, NpgsqlDbType.Bigint); break;
-            case ColumnDataType.Decimal: writer.Write((decimal)value, NpgsqlDbType.Numeric); break;
-            case ColumnDataType.Boolean: writer.Write((bool)value, NpgsqlDbType.Boolean); break;
-            case ColumnDataType.DateTime: writer.Write((DateTime)value, NpgsqlDbType.Timestamp); break;
-            case ColumnDataType.Date: writer.Write((DateOnly)value, NpgsqlDbType.Date); break;
-            case ColumnDataType.Uuid: writer.Write((Guid)value, NpgsqlDbType.Uuid); break;
-            case ColumnDataType.Json: writer.Write((string)value, NpgsqlDbType.Jsonb); break;
-            case ColumnDataType.Binary: writer.Write((byte[])value, NpgsqlDbType.Bytea); break;
+            case ColumnDataType.Integer: await writer.WriteAsync((int)value, NpgsqlDbType.Integer); break;
+            case ColumnDataType.BigInt: await writer.WriteAsync((long)value, NpgsqlDbType.Bigint); break;
+            case ColumnDataType.Decimal: await writer.WriteAsync((decimal)value, NpgsqlDbType.Numeric); break;
+            case ColumnDataType.Boolean: await writer.WriteAsync((bool)value, NpgsqlDbType.Boolean); break;
+            case ColumnDataType.DateTime: await writer.WriteAsync((DateTime)value, NpgsqlDbType.Timestamp); break;
+            case ColumnDataType.Date: await writer.WriteAsync((DateOnly)value, NpgsqlDbType.Date); break;
+            case ColumnDataType.Uuid: await writer.WriteAsync((Guid)value, NpgsqlDbType.Uuid); break;
+            case ColumnDataType.Json: await writer.WriteAsync((string)value, NpgsqlDbType.Jsonb); break;
+            case ColumnDataType.Binary: await writer.WriteAsync((byte[])value, NpgsqlDbType.Bytea); break;
             case ColumnDataType.Text:
             default:
-                writer.Write((string)value, NpgsqlDbType.Text);
+                await writer.WriteAsync((string)value, NpgsqlDbType.Text);
                 break;
         }
     }
