@@ -3,7 +3,7 @@ using Vogen;
 namespace Bulkivore.Api.Domain.Ingestion;
 
 [ValueObject<ValueTuple<int, string, string, string>>]
-public readonly partial record struct RowError
+public partial class RowError
 {
     public static RowError Create(int rowNumber, string column, string? rawValue, string reason) =>
         From((rowNumber, column, rawValue ?? "", reason));

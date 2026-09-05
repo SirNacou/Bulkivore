@@ -2,28 +2,27 @@ using Vogen;
 
 namespace Bulkivore.Api.Domain.Ingestion;
 
-[ValueObject<(string, string)>]
-public readonly partial record struct SourceFileName
+public enum FileFormat { Csv, Xlsx }
+
+[ValueObject<string>]
+public readonly partial struct SourceFile
 {
-    public static ErrorOr<SourceFileName> Create(string fileName)
-    {
-        var trimmed = fileName.Trim();
-        var extension = Path.GetExtension(trimmed).ToLowerInvariant();
+    public string Name => Value;
+    public string Extension => Path.GetExtension(Value).ToLowerInvariant();
 
-        var res = TryFrom((trimmed, extension));
-        if (res.IsSuccess) return res.ValueObject;
-        return Error.Validation(res.Error.ErrorMessage);
-    }
-
-    public string Name => Value.Item1;
-    public string Extension => Value.Item2;
+    public FileFormat Format =>
+        Extension switch
+        {
+            ".csv" => FileFormat.Csv,
+            ".xlsx" => FileFormat.Xlsx,
+            _ => throw new InvalidOperationException("Unsupported file format.")
+        };
 
     private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".csv", ".xlsx" };
 
-    private static Validation Validate((string, string) input)
+    private static Validation Validate(string rawFileName)
     {
-        var (rawFileName, extension) = input;
         if (string.IsNullOrWhiteSpace(rawFileName))
         {
             return Validation
@@ -34,6 +33,7 @@ public readonly partial record struct SourceFileName
                 );
         }
 
+        var extension = Path.GetExtension(rawFileName).ToLowerInvariant();
         if (string.IsNullOrEmpty(extension) || !AllowedExtensions.Contains(extension))
         {
             return Validation
@@ -47,5 +47,8 @@ public readonly partial record struct SourceFileName
         return Validation.Ok;
     }
 
-    public static implicit operator string(SourceFileName sourceFileName) => sourceFileName.Name;
+    private static string NormalizeInput(string input)
+    {
+        return input.Trim();
+    }
 }

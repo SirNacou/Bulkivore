@@ -9,7 +9,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
 {
     public string TenantId { get; init; }
     public string TargetTable { get; init; }
-    public SourceFileName FileName { get; init; }
+    public SourceFile File { get; init; }
     public string StorageKey { get; init; }
     public ImportSessionStatus Status { get; set; }
     public DateTimeOffset CreatedAt { get; init; }
@@ -18,20 +18,22 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
     public int ProcessedRows => SuccessRowCount + FailedRowCount;
     public int SuccessRowCount { get; private set; }
     public int FailedRowCount { get; private set; }
-    public List<RowError> RowErrors { get; private set; } = [];
+    private List<RowError> _rowErrors;
+    public IReadOnlyList<RowError> RowErrors => _rowErrors;
     public string? ErrorMessage { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
 
-    private ImportSession(string tenantId, string targetTable, SourceFileName fileName, string storageKey)
+    private ImportSession(string tenantId, string targetTable, SourceFile file, string storageKey)
         : base(ImportSessionId.FromNewVersion7Guid())
     {
         TenantId = tenantId;
         TargetTable = targetTable;
-        FileName = fileName;
+        File = file;
         StorageKey = storageKey;
         Status = ImportSessionStatus.Initialized;
         CreatedAt = DateTimeOffset.UtcNow;
         _columnMappings = [];
+        _rowErrors = [];
     }
 
     public static ErrorOr<ImportSession> Initialize(
@@ -52,15 +54,16 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
             );
         }
 
-        var errorOrFileName = SourceFileName.Create(fileName);
-        if (errorOrFileName.IsError) errors.AddRange(errorOrFileName.Errors);
+        var errorOrFileName = SourceFile.TryFrom(fileName);
+        if (!errorOrFileName.IsSuccess)
+            errors.AddRange(Error.Validation(description: errorOrFileName.Error.ErrorMessage));
 
         if (errors.Count > 0) return errors;
 
         var importSession = new ImportSession(
             string.IsNullOrWhiteSpace(tenantId) ? "default" : tenantId,
             targetTable,
-            errorOrFileName.Value,
+            errorOrFileName.ValueObject,
             storageKey
         );
 
@@ -106,19 +109,27 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
             .CanTransitionTo(ImportSessionStatus.Ingesting)
             .ThenDo(_ => Status = ImportSessionStatus.Ingesting);
 
-    public ErrorOr<Success> Complete(int rowCount, List<RowError> errors) =>
-        Status
-            .CanTransitionTo(ImportSessionStatus.Completed)
-            .ThenDo(_ => Status = ImportSessionStatus.Completed)
-            .ThenDo(_ => SuccessRowCount = rowCount)
-            .ThenDo(_ => FailedRowCount = rowCount)
-            .ThenDo(_ => RowErrors = errors)
-            .ThenDo(_ => CompletedAt = DateTimeOffset.UtcNow);
+    public ErrorOr<Success> Complete(int rowCount, List<RowError> errors)
+    {
+        var errorOr = Status.CanTransitionTo(ImportSessionStatus.Completed);
+        if (errorOr.IsError) return errorOr;
 
-    public ErrorOr<Success> Fail(string errorMessage) =>
-        Status
-            .CanTransitionTo(ImportSessionStatus.Failed)
-            .ThenDo(_ => Status = ImportSessionStatus.Failed)
-            .ThenDo(_ => ErrorMessage = errorMessage)
-            .ThenDo(_ => CompletedAt = DateTimeOffset.UtcNow);
+        Status = ImportSessionStatus.Completed;
+        SuccessRowCount = rowCount;
+        FailedRowCount = rowCount;
+        _rowErrors = errors;
+        CompletedAt = DateTimeOffset.UtcNow;
+        return errorOr;
+    }
+
+    public ErrorOr<Success> Fail(string errorMessage)
+    {
+        var errorOr = Status.CanTransitionTo(ImportSessionStatus.Failed);
+        if (errorOr.IsError) return errorOr;
+
+        Status = ImportSessionStatus.Failed;
+        ErrorMessage = errorMessage;
+        CompletedAt = DateTimeOffset.UtcNow;
+        return errorOr;
+    }
 }

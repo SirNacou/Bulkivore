@@ -25,8 +25,7 @@ public class ImportSessionConfiguration : IEntityTypeConfiguration<ImportSession
             .IsRequired();
 
         builder
-            .Property(x => x.FileName)
-            .HasMaxLength(255)
+            .Property(x => x.File)
             .IsRequired();
 
         builder
@@ -46,13 +45,17 @@ public class ImportSessionConfiguration : IEntityTypeConfiguration<ImportSession
         builder
             .Property(x => x.ColumnMappings)
             .HasColumnType("jsonb")
-            .HasConversion(
-                v => JsonSerializer.Serialize(v),
-                v => JsonSerializer.Deserialize<Dictionary<string, string>>(v) ?? new Dictionary<string, string>()
-            )
             .IsRequired();
 
         builder.Navigation(x => x.ColumnMappings).HasField("_columnMappings");
+
+        builder.OwnsMany(
+            x => x.RowErrors,
+            owned =>
+            {
+                owned.ToJson();
+            }
+        );
 
         // Indexes
         builder

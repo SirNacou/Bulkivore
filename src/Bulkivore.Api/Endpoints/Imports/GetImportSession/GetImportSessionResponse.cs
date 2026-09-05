@@ -18,7 +18,7 @@ public record GetImportSessionResponse(
         session.Id,
         session.Status,
         session.TargetTable,
-        session.FileName.Name,
+        session.File.Name,
         session.ProcessedRows,
         session.ErrorMessage,
         session.ColumnMappings,

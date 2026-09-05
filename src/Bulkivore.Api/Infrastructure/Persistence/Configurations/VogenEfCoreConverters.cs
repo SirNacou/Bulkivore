@@ -3,4 +3,6 @@ using Vogen;
 
 namespace Bulkivore.Api.Infrastructure.Persistence.Configurations;
 
-[EfCoreConverter<ImportSessionId>] internal partial class VogenEfCoreConverters;
+[EfCoreConverter<ImportSessionId>]
+[EfCoreConverter<SourceFile>]
+internal partial class VogenEfCoreConverters;
