@@ -20,16 +20,14 @@ public static class ImportSessionStatusExtensions
         public ErrorOr<Success> CanTransitionTo(ImportSessionStatus nextStatus) =>
             (status, nextStatus) switch
             {
-                (ImportSessionStatus.Initialized, not ImportSessionStatus.Uploaded) =>
+                (not ImportSessionStatus.Initialized, ImportSessionStatus.Uploaded) =>
                     IngestionErrors.CannotConfirmUploadFromStatus(status),
-                (ImportSessionStatus.Uploaded, not ImportSessionStatus.Mapped) =>
-                    GetError(status, nextStatus),
-                (ImportSessionStatus.Mapped, not ImportSessionStatus.Ingesting) =>
-                    GetError(status, nextStatus),
-                (ImportSessionStatus.Ingesting, not ImportSessionStatus.Completed) =>
-                    GetError(status, nextStatus),
-                (ImportSessionStatus.Ingesting, not ImportSessionStatus.Failed) =>
-                    GetError(status, nextStatus),
+                (not ImportSessionStatus.Uploaded or not ImportSessionStatus.Mapped, ImportSessionStatus.Mapped) =>
+                    IngestionErrors.CannotApplyMappingFromStatus(status),
+                (not ImportSessionStatus.Mapped, ImportSessionStatus.Ingesting) =>
+                    IngestionErrors.CannotCommitSessionFromStatus(status),
+                (not ImportSessionStatus.Ingesting, ImportSessionStatus.Completed) =>
+                    IngestionErrors.CannotCompleteSessionFromStatus(status),
                 _ => Result.Success
             };
     }

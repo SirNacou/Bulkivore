@@ -13,6 +13,14 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
     public string StorageKey { get; init; }
     public ImportSessionStatus Status { get; set; }
     public DateTimeOffset CreatedAt { get; init; }
+    private Dictionary<string, string> _columnMappings;
+    public IReadOnlyDictionary<string, string> ColumnMappings => _columnMappings;
+    public int ProcessedRows => SuccessRowCount + FailedRowCount;
+    public int SuccessRowCount { get; private set; }
+    public int FailedRowCount { get; private set; }
+    public List<RowError> RowErrors { get; private set; } = [];
+    public string? ErrorMessage { get; private set; }
+    public DateTimeOffset? CompletedAt { get; private set; }
 
     private ImportSession(string tenantId, string targetTable, SourceFileName fileName, string storageKey)
         : base(ImportSessionId.FromNewVersion7Guid())
@@ -69,20 +77,11 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
             .CanTransitionTo(newStatus)
             .ThenDo(_ => Status = newStatus);
 
-    private Dictionary<string, string> _columnMappings;
-    public IReadOnlyDictionary<string, string> ColumnMappings => _columnMappings;
-
     public ErrorOr<Success> ApplyMappings(
         IReadOnlyDictionary<string, string> mappings,
         IReadOnlyList<string> requiredTargetColumns)
     {
-        if (Status is not (ImportSessionStatus.Uploaded or ImportSessionStatus.Mapped))
-        {
-            return Error.Validation(
-                description: $"Cannot apply mappings when session is in '{Status}' status.",
-                metadata: new() { [nameof(Status)] = Status.ToString() }
-            );
-        }
+        if (Status.CanTransitionTo(ImportSessionStatus.Mapped) is { IsError: true } error) return error;
 
         if (mappings.Count == 0) return Error.Validation(description: "At least one column mapping must be provided.");
 
@@ -101,4 +100,25 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
 
         return Result.Success;
     }
+
+    public ErrorOr<Success> StartIngesting() =>
+        Status
+            .CanTransitionTo(ImportSessionStatus.Ingesting)
+            .ThenDo(_ => Status = ImportSessionStatus.Ingesting);
+
+    public ErrorOr<Success> Complete(int rowCount, List<RowError> errors) =>
+        Status
+            .CanTransitionTo(ImportSessionStatus.Completed)
+            .ThenDo(_ => Status = ImportSessionStatus.Completed)
+            .ThenDo(_ => SuccessRowCount = rowCount)
+            .ThenDo(_ => FailedRowCount = rowCount)
+            .ThenDo(_ => RowErrors = errors)
+            .ThenDo(_ => CompletedAt = DateTimeOffset.UtcNow);
+
+    public ErrorOr<Success> Fail(string errorMessage) =>
+        Status
+            .CanTransitionTo(ImportSessionStatus.Failed)
+            .ThenDo(_ => Status = ImportSessionStatus.Failed)
+            .ThenDo(_ => ErrorMessage = errorMessage)
+            .ThenDo(_ => CompletedAt = DateTimeOffset.UtcNow);
 }

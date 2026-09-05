@@ -4,6 +4,6 @@ namespace Bulkivore.Api.Endpoints.Imports.SetImportMappings;
 
 public sealed record SetImportMappingsResponse(
     ImportSessionId Id,
-    string Status,
+    ImportSessionStatus Status,
     int MappedColumnCount
 );

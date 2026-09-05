@@ -1,5 +1,6 @@
 global using ErrorOr;
 global using FluentValidation;
+global using static Bulkivore.Api.Domain.Ingestion.ParsedCell;
 using Vogen;
 
 

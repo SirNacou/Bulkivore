@@ -27,7 +27,7 @@ public static class DependencyInjection
                 .ValidateOnStart();
 
             // EFCore
-            services.AddDbContextPool<BulkivoreDbContext>((sp, b) =>
+            services.AddDbContextPool<AppDbContext>((sp, b) =>
                 {
                     b
                         .UseNpgsql("bulkivore-db")

@@ -6,7 +6,7 @@ using FastEndpoints;
 
 namespace Bulkivore.Api.Endpoints.Imports.InitializeSession;
 
-public class InitializeSessionEndpoint(IFileStorage fileStorage, BulkivoreDbContext dbContext)
+public class InitializeSessionEndpoint(IFileStorage fileStorage, AppDbContext dbContext)
     : Ep.Req<InitializeSessionRequest>.Res<ErrorOr<InitializeSessionResponse>>
 {
     public override void Configure()

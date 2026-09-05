@@ -9,7 +9,7 @@ using MiniExcel = MiniExcelLibs.MiniExcel;
 namespace Bulkivore.Api.Endpoints.Imports.InspectSession;
 
 public class InspectSessionEndpoint(
-    BulkivoreDbContext dbContext,
+    AppDbContext dbContext,
     IFileStorage fileStorage,
     ISchemaInspector schemaInspector,
     FuzzyColumnMatcher matcher
@@ -69,7 +69,7 @@ public class InspectSessionEndpoint(
 
         return new InspectSessionResponse(
             session.Id,
-            session.Status.ToString(),
+            session.Status,
             headers,
             suggestedMappings,
             targetColumns,

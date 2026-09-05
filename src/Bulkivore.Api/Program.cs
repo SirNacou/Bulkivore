@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Bulkivore.Api.Endpoints.Common.Middlewares;
 using Bulkivore.Api.Infrastructure;
 using Bulkivore.Api.Infrastructure.Persistence;
@@ -9,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+builder.AddKeyedNpgsqlDataSource("bulkivore-test-db");
+
 builder.Services.AddInfrastructure();
 builder.Services.AddFastEndpoints().OpenApiDocument();
 
@@ -18,7 +21,11 @@ app.MapDefaultEndpoints();
 app.UseHttpsRedirection();
 app.UseFastEndpoints(config =>
     {
+        config.Serializer.Options.Converters.Add(new JsonStringEnumConverter());
+
         config.Endpoints.RoutePrefix = "/api";
+
+        config.Errors.UseProblemDetails();
         config.Endpoints.Configurator =
             ep =>
             {
@@ -33,7 +40,6 @@ app.UseFastEndpoints(config =>
                     );
                 }
             };
-        config.Errors.UseProblemDetails();
     }
 );
 

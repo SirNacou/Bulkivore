@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Bulkivore.Api.Infrastructure.Persistence;
 
-public sealed class BulkivoreDbContext(DbContextOptions<BulkivoreDbContext> options) : DbContext(options)
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<ImportSession> ImportSessions => Set<ImportSession>();
 

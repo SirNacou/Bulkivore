@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Bulkivore.Api.Endpoints.Imports.SetImportMappings;
 
-public class SetImportMappingsEndpoint(BulkivoreDbContext dbContext, ISchemaInspector schemaInspector)
+public class SetImportMappingsEndpoint(AppDbContext dbContext, ISchemaInspector schemaInspector)
     : Ep.Req<SetImportMappingsRequest>.Res<ErrorOr<SetImportMappingsResponse>>
 {
     public override void Configure()
@@ -26,10 +26,12 @@ public class SetImportMappingsEndpoint(BulkivoreDbContext dbContext, ISchemaInsp
 
         var invalidTargets = req.Mappings.Values.Except(tableSchema.Keys, StringComparer.OrdinalIgnoreCase).ToList();
         if (invalidTargets.Count > 0)
+        {
             return Error.Validation(
                 description:
                 $"Target column(s) do not exist in table '{session.TargetTable}': {string.Join(", ", invalidTargets)}"
             );
+        }
 
         var unwritableTargets = req
             .Mappings.Values
@@ -56,7 +58,7 @@ public class SetImportMappingsEndpoint(BulkivoreDbContext dbContext, ISchemaInsp
 
         return new SetImportMappingsResponse(
             session.Id,
-            session.Status.ToString(),
+            session.Status,
             req.Mappings.Count
         );
     }
