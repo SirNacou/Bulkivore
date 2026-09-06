@@ -4,7 +4,10 @@ using Bulkivore.MigrationService;
 var builder = Host.CreateApplicationBuilder(args);
 builder.AddServiceDefaults();
 
-builder.AddNpgsqlDbContext<AppDbContext>("bulkivore-db");
+builder.AddNpgsqlDbContext<AppDbContext>(
+    "bulkivore-db",
+    configureDbContextOptions: options => options.UseBulkivoreDbDefaults()
+);
 
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddOpenTelemetry().WithTracing(tracing => tracing.AddSource(typeof(Worker).Namespace!));

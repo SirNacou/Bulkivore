@@ -1,6 +1,5 @@
 using Bulkivore.Api.Domain.Ingestion.Ports;
 using Bulkivore.Api.Domain.Schema;
-using Bulkivore.Api.Endpoints.Ingestion.Services;
 using Bulkivore.Api.Infrastructure.Persistence;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
@@ -12,14 +11,14 @@ public class InspectSessionEndpoint(
     AppDbContext dbContext,
     IFileStorage fileStorage,
     ISchemaInspector schemaInspector,
-    FuzzyColumnMatcher matcher
+    IColumnMatcher matcher
 )
     : Ep.Req<InspectSessionRequest>.Res<ErrorOr<InspectSessionResponse>>
 {
     public override void Configure()
     {
-        Group<ImportsGroup>();
         Post("{SessionId}/inspect");
+        Group<ImportsGroup>();
         AllowAnonymous();
     }
 
@@ -28,7 +27,8 @@ public class InspectSessionEndpoint(
         CancellationToken ct)
     {
         var session = await dbContext.ImportSessions.FirstOrDefaultAsync(x => x.Id == req.SessionId, ct);
-        if (session == null) return Error.NotFound();
+        if (session == null)
+            return Error.NotFound();
 
         if (!await fileStorage.ExistsAsync(session.StorageKey, ct))
         {
@@ -48,7 +48,8 @@ public class InspectSessionEndpoint(
 
             await foreach (var rawRow in rows)
             {
-                if (rawRow is not IDictionary<string, object> dict) continue;
+                if (rawRow is not IDictionary<string, object> dict)
+                    continue;
 
                 if (headers.Count == 0)
                 {
@@ -57,13 +58,15 @@ public class InspectSessionEndpoint(
 
                 previewRows.Add(new Dictionary<string, object>(dict, StringComparer.OrdinalIgnoreCase));
 
-                if (previewRows.Count >= 20) break;
+                if (previewRows.Count >= 20)
+                    break;
             }
         }
 
         var targetColumns = (await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct))
             .Values.ToList();
-        var suggestedMappings = matcher.AutoMatch(headers, targetColumns);
+        var suggestedMappings = matcher.Match(headers, targetColumns);
+
 
         await dbContext.SaveChangesAsync(ct);
 

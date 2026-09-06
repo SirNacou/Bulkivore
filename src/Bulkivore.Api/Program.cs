@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization;
 using Bulkivore.Api.Endpoints.Common.Middlewares;
 using Bulkivore.Api.Infrastructure;
-using Bulkivore.Api.Infrastructure.Persistence;
 using FastEndpoints;
 using FastEndpoints.OpenApi;
 using Scalar.AspNetCore;

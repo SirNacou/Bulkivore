@@ -10,8 +10,8 @@ public class SetImportMappingsEndpoint(AppDbContext dbContext, ISchemaInspector 
 {
     public override void Configure()
     {
-        Group<ImportsGroup>();
         Post("{Id}/mappings");
+        Group<ImportsGroup>();
         AllowAnonymous();
     }
 
@@ -20,7 +20,8 @@ public class SetImportMappingsEndpoint(AppDbContext dbContext, ISchemaInspector 
         CancellationToken ct)
     {
         var session = await dbContext.ImportSessions.FirstOrDefaultAsync(x => x.Id == req.Id, ct);
-        if (session == null) return Error.NotFound();
+        if (session == null)
+            return Error.NotFound();
 
         var tableSchema = await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct);
 
@@ -52,7 +53,8 @@ public class SetImportMappingsEndpoint(AppDbContext dbContext, ISchemaInspector 
             .ToList();
 
         var errorOrSuccess = session.ApplyMappings(req.Mappings, requiredColumns);
-        if (errorOrSuccess.IsError) return errorOrSuccess.Errors;
+        if (errorOrSuccess.IsError)
+            return errorOrSuccess.Errors;
 
         await dbContext.SaveChangesAsync(ct);
 

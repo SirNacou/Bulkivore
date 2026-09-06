@@ -1,4 +1,6 @@
+using Aspire.Hosting;
 using Bulkivore.AppHost;
+using Microsoft.Extensions.Hosting;
 
 #pragma warning disable ASPIRECOMPUTE003
 #pragma warning disable ASPIREPIPELINES003
@@ -16,10 +18,26 @@ var postgres = builder.AddPostgres("postgres").WithDataVolume().WithDbx();
 var db = postgres.AddDatabase("bulkivore-db");
 var testDb = postgres.AddDatabase("bulkivore-test-db");
 
-var migrationService = builder
-    .AddProject<Projects.Bulkivore_MigrationService>("migration-service")
-    .WithReference(db)
-    .WaitFor(db);
+IResourceBuilder<IResource> migrationRunner;
+if (builder.Environment.IsDevelopment() || builder.ExecutionContext.IsRunMode)
+{
+    migrationRunner = builder
+        .AddProject<Projects.Bulkivore_MigrationService>("migration-service")
+        .WithReference(db)
+        .WaitFor(db);
+}
+else
+{
+    migrationRunner = builder
+        .AddDockerfile(
+            name: "migration-bundle",
+            contextPath: Path.Combine("..", ".."),
+            dockerfilePath: "src/Bulkivore.MigrationService/Dockerfile"
+        )
+        .WithReference(db)
+        .WithArgs("--connection", db.Resource.ConnectionStringExpression)
+        .WaitFor(db);
+}
 
 // 3. API Application
 var api = builder
@@ -29,7 +47,7 @@ var api = builder
     .WithReference(testDb)
     .WithEnvironment("TEST_DB_CONN", testDb.Resource.UriExpression)
     .WithS3Storage(storage, storageInit, bucketName: "bulkivore-imports")
-    .WaitForCompletion(migrationService)
+    .WaitForCompletion(migrationRunner)
     .WithHttpHealthCheck("/health");
 
 builder.Build().Run();

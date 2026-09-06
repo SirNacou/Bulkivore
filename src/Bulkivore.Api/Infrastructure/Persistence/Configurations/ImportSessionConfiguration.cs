@@ -47,7 +47,10 @@ public class ImportSessionConfiguration : IEntityTypeConfiguration<ImportSession
             .HasColumnType("jsonb")
             .IsRequired();
 
-        builder.Navigation(x => x.ColumnMappings).HasField("_columnMappings");
+        builder
+            .Property(x => x.ColumnMappings)
+            .HasField("_columnMappings")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.OwnsMany(
             x => x.RowErrors,

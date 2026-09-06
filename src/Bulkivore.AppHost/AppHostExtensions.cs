@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Bulkivore.AppHost;
 

@@ -10,8 +10,8 @@ public class GetImportSessionEndpoint(AppDbContext dbContext)
 {
     public override void Configure()
     {
-        Group<ImportsGroup>();
         Get("{Id}");
+        Group<ImportsGroup>();
         AllowAnonymous();
     }
 

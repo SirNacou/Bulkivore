@@ -14,7 +14,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
     public ImportSessionStatus Status { get; set; }
     public DateTimeOffset CreatedAt { get; init; }
     private Dictionary<string, string> _columnMappings;
-    public IReadOnlyDictionary<string, string> ColumnMappings => _columnMappings;
+    public IReadOnlyDictionary<string, string> ColumnMappings => _columnMappings.AsReadOnly();
     public int ProcessedRows => SuccessRowCount + FailedRowCount;
     public int SuccessRowCount { get; private set; }
     public int FailedRowCount { get; private set; }
@@ -58,7 +58,8 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
         if (!errorOrFileName.IsSuccess)
             errors.AddRange(Error.Validation(description: errorOrFileName.Error.ErrorMessage));
 
-        if (errors.Count > 0) return errors;
+        if (errors.Count > 0)
+            return errors;
 
         var importSession = new ImportSession(
             string.IsNullOrWhiteSpace(tenantId) ? "default" : tenantId,
@@ -84,9 +85,11 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
         IReadOnlyDictionary<string, string> mappings,
         IReadOnlyList<string> requiredTargetColumns)
     {
-        if (Status.CanTransitionTo(ImportSessionStatus.Mapped) is { IsError: true } error) return error;
+        if (Status.CanTransitionTo(ImportSessionStatus.Mapped) is { IsError: true } error)
+            return error;
 
-        if (mappings.Count == 0) return Error.Validation(description: "At least one column mapping must be provided.");
+        if (mappings.Count == 0)
+            return Error.Validation(description: "At least one column mapping must be provided.");
 
         HashSet<string> mappedTargets = new(mappings.Values, StringComparer.OrdinalIgnoreCase);
         var missingRequired = requiredTargetColumns.Except(mappedTargets).ToList();
@@ -112,7 +115,8 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
     public ErrorOr<Success> Complete(int rowCount, List<RowError> errors)
     {
         var errorOr = Status.CanTransitionTo(ImportSessionStatus.Completed);
-        if (errorOr.IsError) return errorOr;
+        if (errorOr.IsError)
+            return errorOr;
 
         Status = ImportSessionStatus.Completed;
         SuccessRowCount = rowCount;
@@ -125,7 +129,8 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
     public ErrorOr<Success> Fail(string errorMessage)
     {
         var errorOr = Status.CanTransitionTo(ImportSessionStatus.Failed);
-        if (errorOr.IsError) return errorOr;
+        if (errorOr.IsError)
+            return errorOr;
 
         Status = ImportSessionStatus.Failed;
         ErrorMessage = errorMessage;

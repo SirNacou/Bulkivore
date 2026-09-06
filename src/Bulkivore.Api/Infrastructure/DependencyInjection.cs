@@ -4,9 +4,9 @@ using Amazon.S3;
 using Bulkivore.Api.Domain.Ingestion;
 using Bulkivore.Api.Domain.Ingestion.Ports;
 using Bulkivore.Api.Domain.Schema;
-using Bulkivore.Api.Infrastructure.Adapters;
 using Bulkivore.Api.Infrastructure.Configuration;
 using Bulkivore.Api.Infrastructure.Persistence;
+using Bulkivore.Api.Infrastructure.Services;
 using Bulkivore.Api.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -29,9 +29,8 @@ public static class DependencyInjection
             // EFCore
             services.AddDbContextPool<AppDbContext>((sp, b) =>
                 {
-                    b
-                        .UseNpgsql("bulkivore-db")
-                        .UseSnakeCaseNamingConvention();
+                    b.UseNpgsql("bulkivore-db")
+                        .UseBulkivoreDbDefaults();
                 }
             );
 
@@ -63,6 +62,7 @@ public static class DependencyInjection
             services.AddSingleton<IFileStorage, S3FileStorage>();
             services.AddSingleton<ISchemaInspector, PostgresSchemaInspector>();
             services.AddSingleton<IStreamingHeaderReader, MiniExcelHeaderReader>();
+            services.AddSingleton<IColumnMatcher, FuzzyColumnMatcher>();
 
             return services;
         }

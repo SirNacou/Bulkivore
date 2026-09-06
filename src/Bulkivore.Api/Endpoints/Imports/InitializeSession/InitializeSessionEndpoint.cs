@@ -11,8 +11,8 @@ public class InitializeSessionEndpoint(IFileStorage fileStorage, AppDbContext db
 {
     public override void Configure()
     {
-        Group<ImportsGroup>();
         Post("");
+        Group<ImportsGroup>();
         AllowAnonymous();
     }
 
@@ -32,7 +32,8 @@ public class InitializeSessionEndpoint(IFileStorage fileStorage, AppDbContext db
             req.FileName,
             storageKey
         );
-        if (errorOrImportSession.IsError) return errorOrImportSession.Errors;
+        if (errorOrImportSession.IsError)
+            return errorOrImportSession.Errors;
         var importSession = errorOrImportSession.Value;
 
         dbContext.ImportSessions.Add(importSession);

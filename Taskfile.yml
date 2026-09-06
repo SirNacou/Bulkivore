@@ -1,0 +1,43 @@
+version: '3'
+
+vars:
+  # INFRA_PROJECT: 'src/Bulkivore.Infrastructure'
+  INFRA_PROJECT: 'src/Bulkivore.Api'
+  STARTUP_PROJECT: 'src/Bulkivore.Api'
+  MIGRATIONS_DIR: 'Infrastructure/Persistence/Migrations'
+
+tasks:
+  migration:add:
+    desc: 'Generate a new EF Core migration (Usage: task migration:add -- <MigrationName>)'
+    requires:
+      vars: [ CLI_ARGS ]
+    cmds:
+      - >
+        dotnet ef migrations add {{.CLI_ARGS}} 
+        --project {{.INFRA_PROJECT}} 
+        --startup-project {{.STARTUP_PROJECT}} 
+        --output-dir {{.MIGRATIONS_DIR}}
+
+  migration:remove:
+    desc: 'Roll back and delete the last unapplied migration'
+    cmds:
+      - >
+        dotnet ef migrations remove 
+        --project {{.INFRA_PROJECT}} 
+        --startup-project {{.STARTUP_PROJECT}}
+
+  migration:update:
+    desc: 'Apply pending migrations directly to PostgreSQL via CLI'
+    cmds:
+      - >
+        dotnet ef database update 
+        --project {{.INFRA_PROJECT}} 
+        --startup-project {{.STARTUP_PROJECT}}
+
+  migration:list:
+    desc: 'List all migrations and their status'
+    cmds:
+      - >
+        dotnet ef migrations list 
+        --project {{.INFRA_PROJECT}} 
+        --startup-project {{.STARTUP_PROJECT}}

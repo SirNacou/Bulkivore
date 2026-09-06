@@ -24,8 +24,8 @@ public class CommitImportEndpoint(
 {
     public override void Configure()
     {
-        Group<ImportsGroup>();
         Post("{Id}/commit");
+        Group<ImportsGroup>();
         AllowAnonymous();
     }
 
@@ -34,10 +34,12 @@ public class CommitImportEndpoint(
         CancellationToken ct)
     {
         var session = await dbContext.ImportSessions.FirstOrDefaultAsync(x => x.Id == req.Id, ct);
-        if (session == null) return Error.NotFound();
+        if (session == null)
+            return Error.NotFound();
 
         var errorOr = session.StartIngesting();
-        if (errorOr.IsError) return errorOr.Errors;
+        if (errorOr.IsError)
+            return errorOr.Errors;
         await dbContext.SaveChangesAsync(ct);
 
         var stopWatch = Stopwatch.StartNew();
@@ -68,7 +70,8 @@ public class CommitImportEndpoint(
             {
                 currentRowIndex++;
 
-                if (row is not IDictionary<string, object> rowDict) continue;
+                if (row is not IDictionary<string, object> rowDict)
+                    continue;
 
                 List<ParsedCell> rowValues = [];
                 var hasRowError = false;
@@ -92,7 +95,8 @@ public class CommitImportEndpoint(
                     rowValues.Add(cell);
                 }
 
-                if (hasRowError) continue;
+                if (hasRowError)
+                    continue;
 
                 await writer.StartRowAsync(ct);
                 foreach (var cell in rowValues)
@@ -231,15 +235,33 @@ public class CommitImportEndpoint(
 
         switch (dataType)
         {
-            case ColumnDataType.Integer: await writer.WriteAsync((int)value, NpgsqlDbType.Integer); break;
-            case ColumnDataType.BigInt: await writer.WriteAsync((long)value, NpgsqlDbType.Bigint); break;
-            case ColumnDataType.Decimal: await writer.WriteAsync((decimal)value, NpgsqlDbType.Numeric); break;
-            case ColumnDataType.Boolean: await writer.WriteAsync((bool)value, NpgsqlDbType.Boolean); break;
-            case ColumnDataType.DateTime: await writer.WriteAsync((DateTime)value, NpgsqlDbType.Timestamp); break;
-            case ColumnDataType.Date: await writer.WriteAsync((DateOnly)value, NpgsqlDbType.Date); break;
-            case ColumnDataType.Uuid: await writer.WriteAsync((Guid)value, NpgsqlDbType.Uuid); break;
-            case ColumnDataType.Json: await writer.WriteAsync((string)value, NpgsqlDbType.Jsonb); break;
-            case ColumnDataType.Binary: await writer.WriteAsync((byte[])value, NpgsqlDbType.Bytea); break;
+            case ColumnDataType.Integer:
+                await writer.WriteAsync((int)value, NpgsqlDbType.Integer);
+                break;
+            case ColumnDataType.BigInt:
+                await writer.WriteAsync((long)value, NpgsqlDbType.Bigint);
+                break;
+            case ColumnDataType.Decimal:
+                await writer.WriteAsync((decimal)value, NpgsqlDbType.Numeric);
+                break;
+            case ColumnDataType.Boolean:
+                await writer.WriteAsync((bool)value, NpgsqlDbType.Boolean);
+                break;
+            case ColumnDataType.DateTime:
+                await writer.WriteAsync((DateTime)value, NpgsqlDbType.Timestamp);
+                break;
+            case ColumnDataType.Date:
+                await writer.WriteAsync((DateOnly)value, NpgsqlDbType.Date);
+                break;
+            case ColumnDataType.Uuid:
+                await writer.WriteAsync((Guid)value, NpgsqlDbType.Uuid);
+                break;
+            case ColumnDataType.Json:
+                await writer.WriteAsync((string)value, NpgsqlDbType.Jsonb);
+                break;
+            case ColumnDataType.Binary:
+                await writer.WriteAsync((byte[])value, NpgsqlDbType.Bytea);
+                break;
             case ColumnDataType.Text:
             default:
                 await writer.WriteAsync((string)value, NpgsqlDbType.Text);

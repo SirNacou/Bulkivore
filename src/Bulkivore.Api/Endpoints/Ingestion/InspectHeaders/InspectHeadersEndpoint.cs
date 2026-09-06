@@ -12,8 +12,8 @@ public class InspectHeadersEndpoint(IStreamingHeaderReader headerReader)
 {
     public override void Configure()
     {
-        Group<IngestionGroup>();
         Post("inspect-headers");
+        Group<IngestionGroup>();
         AllowAnonymous();
         AllowFileUploads();
     }

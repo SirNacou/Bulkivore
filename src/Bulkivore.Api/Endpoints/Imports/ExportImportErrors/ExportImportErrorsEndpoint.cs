@@ -11,8 +11,8 @@ public class ExportImportErrorsEndpoint(AppDbContext dbContext) : Ep.Req<ExportI
 {
     public override void Configure()
     {
-        Group<ImportsGroup>();
         Get("{Id}/errors/export");
+        Group<ImportsGroup>();
         AllowAnonymous();
     }
 

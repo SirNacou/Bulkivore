@@ -1,7 +1,7 @@
 using Bulkivore.Api.Domain.Schema;
 using Npgsql;
 
-namespace Bulkivore.Api.Infrastructure.Adapters;
+namespace Bulkivore.Api.Infrastructure.Services;
 
 public class PostgresSchemaInspector(IConfiguration configuration) : ISchemaInspector
 {
@@ -65,7 +65,8 @@ public class PostgresSchemaInspector(IConfiguration configuration) : ISchemaInsp
                 !string.IsNullOrEmpty(defaultValue),
                 isGenerated
             );
-            if (errorOrMetadata.IsError) throw new InvalidOperationException(errorOrMetadata.FirstError.Description);
+            if (errorOrMetadata.IsError)
+                throw new InvalidOperationException(errorOrMetadata.FirstError.Description);
             columns[name] = errorOrMetadata.Value;
         }
 

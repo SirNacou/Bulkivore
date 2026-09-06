@@ -9,8 +9,8 @@ public class GetImportErrorsEndpoint(AppDbContext dbContext)
 {
     public override void Configure()
     {
-        Group<ImportsGroup>();
         Get("{Id}/errors");
+        Group<ImportsGroup>();
         AllowAnonymous();
     }
 
