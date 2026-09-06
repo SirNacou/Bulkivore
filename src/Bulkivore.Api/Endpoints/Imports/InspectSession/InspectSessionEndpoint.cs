@@ -1,6 +1,8 @@
+using Bulkivore.Api.Domain.Common.Resilience;
 using Bulkivore.Api.Domain.Ingestion.Ports;
 using Bulkivore.Api.Domain.Schema;
 using Bulkivore.Api.Infrastructure.Persistence;
+using Bulkivore.Api.Infrastructure.Resilience;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 using MiniExcel = MiniExcelLibs.MiniExcel;
@@ -11,13 +13,14 @@ public class InspectSessionEndpoint(
     AppDbContext dbContext,
     IFileStorage fileStorage,
     ISchemaInspector schemaInspector,
-    IColumnMatcher matcher
+    IColumnMatcher matcher,
+    IRetryService retryService
 )
     : Ep.Req<InspectSessionRequest>.Res<ErrorOr<InspectSessionResponse>>
 {
     public override void Configure()
     {
-        Post("{SessionId}/inspect");
+        Get("{SessionId}/inspect");
         Group<ImportsGroup>();
         AllowAnonymous();
     }
@@ -26,18 +29,30 @@ public class InspectSessionEndpoint(
         InspectSessionRequest req,
         CancellationToken ct)
     {
-        var session = await dbContext.ImportSessions.FirstOrDefaultAsync(x => x.Id == req.SessionId, ct);
+        var session = await dbContext.ImportSessions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == req.SessionId, ct);
         if (session == null)
             return Error.NotFound();
 
-        if (!await fileStorage.ExistsAsync(session.StorageKey, ct))
+        var retryOptions = new RetryOptions()
+        {
+            MaxAttempts = 3,
+            InitialDelay = TimeSpan.FromMilliseconds(400),
+            MaxDelay = TimeSpan.FromMilliseconds(1500),
+        };
+
+        var exists = await retryService.ExecuteUntilAsync(
+            token => fileStorage.ExistsAsync(session.StorageKey, token),
+            result => !result,
+            retryOptions,
+            ct
+        );
+
+        if (!exists)
         {
             return Error.NotFound(
                 description: "Uploaded file was not found in storage. Please upload the file before inspecting."
             );
         }
-
-        session.ConfirmUpload();
 
         List<string> headers = [];
         List<Dictionary<string, object>> previewRows = [];
@@ -66,9 +81,6 @@ public class InspectSessionEndpoint(
         var targetColumns = (await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct))
             .Values.ToList();
         var suggestedMappings = matcher.Match(headers, targetColumns);
-
-
-        await dbContext.SaveChangesAsync(ct);
 
         return new InspectSessionResponse(
             session.Id,

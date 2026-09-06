@@ -1,11 +1,13 @@
 using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
+using Bulkivore.Api.Domain.Common.Resilience;
 using Bulkivore.Api.Domain.Ingestion;
 using Bulkivore.Api.Domain.Ingestion.Ports;
 using Bulkivore.Api.Domain.Schema;
 using Bulkivore.Api.Infrastructure.Configuration;
 using Bulkivore.Api.Infrastructure.Persistence;
+using Bulkivore.Api.Infrastructure.Resilience;
 using Bulkivore.Api.Infrastructure.Services;
 using Bulkivore.Api.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -63,6 +65,7 @@ public static class DependencyInjection
             services.AddSingleton<ISchemaInspector, PostgresSchemaInspector>();
             services.AddSingleton<IStreamingHeaderReader, MiniExcelHeaderReader>();
             services.AddSingleton<IColumnMatcher, FuzzyColumnMatcher>();
+            services.AddSingleton<IRetryService, RetryService>();
 
             return services;
         }

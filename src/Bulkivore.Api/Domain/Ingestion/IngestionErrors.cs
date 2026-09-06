@@ -2,9 +2,6 @@ namespace Bulkivore.Api.Domain.Ingestion;
 
 public static class IngestionErrors
 {
-    public static Error CannotConfirmUploadFromStatus(ImportSessionStatus status) =>
-        Error.Conflict(description: $"Cannot mark as uploaded from status '{status}'.");
-
     public static Error CannotApplyMappingFromStatus(ImportSessionStatus status) =>
         Error.Conflict(description: $"Cannot apply mappings while session is in '{status}' status.");
 

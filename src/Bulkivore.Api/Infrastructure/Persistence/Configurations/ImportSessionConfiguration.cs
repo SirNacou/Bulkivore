@@ -60,6 +60,9 @@ public class ImportSessionConfiguration : IEntityTypeConfiguration<ImportSession
             }
         );
 
+        builder.Property(x => x.ErrorMessage)
+            .HasMaxLength(256);
+
         // Indexes
         builder
             .HasIndex(x => new { x.TenantId, x.TargetTable })
