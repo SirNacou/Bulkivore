@@ -11,6 +11,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Bulkivore.Api\Bulkivore.Api.csproj" />
+        <ProjectReference Include="..\Bulkivore.MigrationService\Bulkivore.MigrationService.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

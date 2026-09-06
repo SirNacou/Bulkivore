@@ -6,27 +6,36 @@ var registry = builder.AddContainerRegistry("ghcr", "ghcr.io", "sirnacou/bulkivo
 
 builder.AddDockerComposeEnvironment("env");
 
-var storage = builder.AddContainer("ministack", "ministackorg/ministack")
+var storage = builder
+    .AddContainer("ministack", "ministackorg/ministack")
     .WithHttpEndpoint(port: 4566, targetPort: 4566, name: "s3")
     .WithEnvironment("SERVICES", "s3")
     .WithEnvironment("MINISTACK_REGION", "us-east-1")
     .WithEnvironment("PERSIST_STATE ", "1")
     .WithVolume("ministack-s3-data", "/tmp/ministack-data/s3");
 
-builder.AddContainer("storage-init", "amazon/aws-cli")
+builder
+    .AddContainer("storage-init", "amazon/aws-cli")
     .WithEnvironment("AWS_ACCESS_KEY_ID", "test")
     .WithEnvironment("AWS_SECRET_ACCESS_KEY", "test")
     .WithEnvironment("AWS_DEFAULT_REGION", "us-east-1")
     .WithArgs("--endpoint-url=http://ministack:4566", "s3", "mb", "s3://bulkivore-imports")
     .WaitFor(storage);
 
-IResourceBuilder<PostgresServerResource> postgres = builder.AddPostgres("postgres")
+IResourceBuilder<PostgresServerResource> postgres = builder
+    .AddPostgres("postgres")
     .WithDataVolume()
     .WithDbx();
 var db = postgres.AddDatabase("bulkivore-db");
 var testDb = postgres.AddDatabase("bulkivore-test-db");
 
-var api = builder.AddProject<Projects.Bulkivore_Api>("api")
+var migrationService = builder
+    .AddProject<Projects.Bulkivore_MigrationService>("migration-service")
+    .WithReference(db)
+    .WaitFor(db);
+
+var api = builder
+    .AddProject<Projects.Bulkivore_Api>("api")
     .PublishAsDockerComposeService((resource, service) => { service.Name = "api"; })
     .WithContainerRegistry(registry)
     .WithRemoteImageName("api")
@@ -35,6 +44,7 @@ var api = builder.AddProject<Projects.Bulkivore_Api>("api")
     .WithReference(testDb)
     .WithReference(storage.GetEndpoint("s3"))
     .WaitFor(db)
+    .WaitForCompletion(migrationService)
     .WaitFor(storage)
     .WithHttpHealthCheck("/health")
     .WithEnvironment("Storage__BucketName", "bulkivore-imports")
@@ -43,10 +53,11 @@ var api = builder.AddProject<Projects.Bulkivore_Api>("api")
     .WithEnvironment("Storage__ForcePathStyle", "true")
     .WithEnvironment("Storage__Region", "us-east-1")
     .WithEnvironment(ctx =>
-    {
-        ctx.EnvironmentVariables["Storage__ServiceUrl"] = storage.GetEndpoint("s3");
-        ctx.EnvironmentVariables["TEST_DB_CONN"] = testDb.Resource.UriExpression;
-    });
+        {
+            ctx.EnvironmentVariables["Storage__ServiceUrl"] = storage.GetEndpoint("s3");
+            ctx.EnvironmentVariables["TEST_DB_CONN"] = testDb.Resource.UriExpression;
+        }
+    );
 
 builder.Build().Run();
 
