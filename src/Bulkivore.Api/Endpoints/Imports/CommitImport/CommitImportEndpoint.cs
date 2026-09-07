@@ -48,10 +48,13 @@ public class CommitImportEndpoint(
 
         try
         {
-            var tableSchema = await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct);
+            var errorOrTableSchema = await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct);
+            if (errorOrTableSchema.IsError)
+                return errorOrTableSchema.Errors;
+            var tableSchema = errorOrTableSchema.Value;
 
             var mappings = session.ColumnMappings;
-            var targetColumns = mappings.Values.ToList();
+            var targetColumns = mappings.Select(m => m.TargetColumn).ToList();
 
             var quotedColumns = string.Join(", ", targetColumns.Select(c => $"\"{c}\""));
             var copyCommand =

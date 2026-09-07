@@ -13,12 +13,14 @@ public class S3FileStorage(IAmazonS3 s3Client, IOptions<StorageOptions> storageO
 
     public string GenerateUploadUrl(string storageKey, TimeSpan expiresIn)
     {
+        var isHttp = _storageOptions.ServiceUrl?.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ?? false;
         var request = new GetPreSignedUrlRequest
         {
             BucketName = _storageOptions.BucketName,
             Key = storageKey,
             Expires = DateTime.UtcNow.Add(expiresIn),
             Verb = HttpVerb.PUT,
+            Protocol = isHttp ? Protocol.HTTP : Protocol.HTTPS
         };
 
         return s3Client.GetPreSignedURL(request);

@@ -5,6 +5,7 @@ using Bulkivore.Api.Infrastructure.Persistence;
 using Bulkivore.Api.Infrastructure.Resilience;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
+using MiniExcelLibs;
 using MiniExcel = MiniExcelLibs.MiniExcel;
 
 namespace Bulkivore.Api.Endpoints.Imports.InspectSession;
@@ -57,9 +58,17 @@ public class InspectSessionEndpoint(
         List<string> headers = [];
         List<Dictionary<string, object>> previewRows = [];
 
-        await using (var stream = await fileStorage.OpenReadAsync(session.StorageKey, ct))
+        var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}{session.File.Extension}");
+
+        try
         {
-            var rows = MiniExcel.QueryAsync(stream, useHeaderRow: true, cancellationToken: ct);
+            await using (var s3Stream = await fileStorage.OpenReadAsync(session.StorageKey, ct))
+            {
+                await using var fileStream = File.Create(tempFilePath);
+                await s3Stream.CopyToAsync(fileStream, ct);
+            }
+
+            var rows = MiniExcel.QueryAsync(tempFilePath, useHeaderRow: true, cancellationToken: ct);
 
             await foreach (var rawRow in rows)
             {
@@ -77,9 +86,18 @@ public class InspectSessionEndpoint(
                     break;
             }
         }
+        finally
+        {
+            if (File.Exists(tempFilePath))
+                File.Delete(tempFilePath);
+        }
 
-        var targetColumns = (await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct))
-            .Values.ToList();
+        var errorOrTableSchema = await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct);
+        if (errorOrTableSchema.IsError)
+            return errorOrTableSchema.Errors;
+        var tableSchema = errorOrTableSchema.Value;
+
+        var targetColumns = tableSchema.Columns.ToList();
         var suggestedMappings = matcher.Match(headers, targetColumns);
 
         return new InspectSessionResponse(

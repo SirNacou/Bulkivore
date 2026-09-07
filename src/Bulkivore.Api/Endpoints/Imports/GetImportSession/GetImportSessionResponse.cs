@@ -9,7 +9,7 @@ public record GetImportSessionResponse(
     string FileName,
     int ProcessedRows,
     string? ErrorMessage,
-    IReadOnlyDictionary<string, string> Mappings,
+    IReadOnlyList<ColumnMapping> Mappings,
     DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt
 )

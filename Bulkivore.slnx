@@ -12,5 +12,7 @@
         <Project Path="src/Bulkivore.MigrationService/Bulkivore.MigrationService.csproj"/>
         <Project Path="src/Bulkivore.ServiceDefaults/Bulkivore.ServiceDefaults.csproj" />
     </Folder>
-    <Folder Name="/test/" />
+    <Folder Name="/test/">
+        <Project Path="test/Bulkivore.IntegrationTests/Bulkivore.IntegrationTests.csproj"/>
+    </Folder>
 </Solution>

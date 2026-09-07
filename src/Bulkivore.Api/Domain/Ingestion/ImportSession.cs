@@ -3,7 +3,11 @@ using Vogen;
 
 namespace Bulkivore.Api.Domain.Ingestion;
 
-[ValueObject<Guid>] public readonly partial record struct ImportSessionId;
+[ValueObject<Guid>]
+public readonly partial struct ImportSessionId
+{
+    public static ImportSessionId Empty => From(Guid.Empty);
+}
 
 public sealed class ImportSession : AggregateRoot<ImportSessionId>
 {
@@ -13,8 +17,8 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
     public string StorageKey { get; init; }
     public ImportSessionStatus Status { get; set; }
     public DateTimeOffset CreatedAt { get; init; }
-    private Dictionary<string, string> _columnMappings;
-    public IReadOnlyDictionary<string, string> ColumnMappings => _columnMappings.AsReadOnly();
+    private List<ColumnMapping> _columnMappings;
+    public IReadOnlyList<ColumnMapping> ColumnMappings => _columnMappings.AsReadOnly();
     public int ProcessedRows => SuccessRowCount + FailedRowCount;
     public int SuccessRowCount { get; private set; }
     public int FailedRowCount { get; private set; }
@@ -77,7 +81,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
             .ThenDo(_ => Status = newStatus);
 
     public ErrorOr<Success> ApplyMappings(
-        IReadOnlyDictionary<string, string> mappings,
+        IReadOnlyList<ColumnMapping> mappings,
         IReadOnlyList<string> requiredTargetColumns)
     {
         if (Status.CanTransitionTo(ImportSessionStatus.Mapped) is { IsError: true } error)
@@ -86,7 +90,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
         if (mappings.Count == 0)
             return Error.Validation(description: "At least one column mapping must be provided.");
 
-        HashSet<string> mappedTargets = new(mappings.Values, StringComparer.OrdinalIgnoreCase);
+        HashSet<string> mappedTargets = new(mappings.Select(m => m.TargetColumn), StringComparer.OrdinalIgnoreCase);
         var missingRequired = requiredTargetColumns.Except(mappedTargets).ToList();
         if (missingRequired.Count > 0)
         {
@@ -96,7 +100,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
             );
         }
 
-        _columnMappings = new Dictionary<string, string>(mappings, StringComparer.OrdinalIgnoreCase);
+        _columnMappings = [.. mappings];
         Status = ImportSessionStatus.Mapped;
 
         return Result.Success;

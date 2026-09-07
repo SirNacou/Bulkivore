@@ -7,16 +7,16 @@ using FastEndpoints;
 namespace Bulkivore.Api.Endpoints.Imports.InitializeSession;
 
 public class InitializeSessionEndpoint(IFileStorage fileStorage, AppDbContext dbContext)
-    : Ep.Req<InitializeSessionRequest>.Res<ErrorOr<InitializeSessionResponse>>
+    : Ep.Req<InitializeSessionRequest>.Res<InitializeSessionResponse>
 {
     public override void Configure()
     {
-        Post("");
+        Post("initialize");
         Group<ImportsGroup>();
         AllowAnonymous();
     }
 
-    public override async Task<ErrorOr<InitializeSessionResponse>> ExecuteAsync(
+    public override async Task HandleAsync(
         InitializeSessionRequest req,
         CancellationToken ct)
     {
@@ -33,17 +33,20 @@ public class InitializeSessionEndpoint(IFileStorage fileStorage, AppDbContext db
             storageKey
         );
         if (errorOrImportSession.IsError)
-            return errorOrImportSession.Errors;
+            await Send.ErrorOrResultAsync(errorOrImportSession.Errors, ct);
         var importSession = errorOrImportSession.Value;
 
         dbContext.ImportSessions.Add(importSession);
         await dbContext.SaveChangesAsync(ct);
 
-        return new InitializeSessionResponse(
-            importSession.Id.Value,
-            uploadUrl,
-            storageKey,
-            DateTimeOffset.UtcNow.Add(expiresIn)
+        await Send.ErrorOrResultAsync(
+            new InitializeSessionResponse(
+                importSession.Id,
+                uploadUrl,
+                storageKey,
+                DateTimeOffset.UtcNow.Add(expiresIn)
+            ),
+            ct
         );
     }
 }

@@ -10,29 +10,26 @@ public class PostgresSchemaInspector(IConfiguration configuration) : ISchemaInsp
                                                     "Missing connection string for test database"
                                                 );
 
-    public async Task<IReadOnlyDictionary<string, ColumnMetadata>> InspectTableAsync(
+    public async Task<ErrorOr<TableSchema>> InspectTableAsync(
         string tableName,
         string schemaName = "public",
         CancellationToken ct = default)
     {
-        var columns = new Dictionary<string, ColumnMetadata>(StringComparer.OrdinalIgnoreCase);
+        var columnList = new List<ColumnMetadata>();
 
-        var sql =
+        const string sql =
             """
             SELECT
                 c.column_name,
                 c.data_type,
                 c.is_nullable,
                 c.character_maximum_length,
-                COALESCE(c.is_identity, 'NO') as is_identity,
+                COALESCE(c.is_identity, 'NO') AS is_identity,
                 c.column_default
-            FROM
-                information_schema.columns c
-            WHERE
-                c.table_schema = @schema
-                AND c.table_name = @table
-            ORDER BY
-                c.ordinal_position;
+            FROM information_schema.columns c
+            WHERE c.table_schema = @schema
+              AND c.table_name = @table
+            ORDER BY c.ordinal_position;
             """;
 
         await using var conn = new NpgsqlConnection(_connectionString);
@@ -46,31 +43,39 @@ public class PostgresSchemaInspector(IConfiguration configuration) : ISchemaInsp
         while (await reader.ReadAsync(ct))
         {
             var name = reader.GetString(0);
-            var dataType = reader.GetString(1);
+            var rawDataType = reader.GetString(1);
             var isNullable = reader.GetString(2).Equals("YES", StringComparison.OrdinalIgnoreCase);
-            var length = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3);
+            var maxLength = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3);
             var isIdentity = reader.GetString(4).Equals("YES", StringComparison.OrdinalIgnoreCase);
             var defaultValue = reader.IsDBNull(5) ? null : reader.GetString(5);
 
+            var hasDefault = !string.IsNullOrWhiteSpace(defaultValue);
             var isGenerated = isIdentity
                               || (defaultValue?.StartsWith("nextval(", StringComparison.OrdinalIgnoreCase) ?? false);
 
-            var domainType = MapToDomainType(dataType);
-            var errorOrMetadata = ColumnMetadata.Create(
-                name,
-                domainType,
-                isNullable,
-                length,
-                isIdentity,
-                !string.IsNullOrEmpty(defaultValue),
-                isGenerated
+            var domainType = MapToDomainType(rawDataType);
+
+            var metadataResult = ColumnMetadata.Create(
+                name: name,
+                dataType: domainType,
+                isNullable: isNullable,
+                maxLength: maxLength,
+                isIdentity: isIdentity,
+                hasDefault: hasDefault,
+                isGenerated: isGenerated
             );
-            if (errorOrMetadata.IsError)
-                throw new InvalidOperationException(errorOrMetadata.FirstError.Description);
-            columns[name] = errorOrMetadata.Value;
+
+            if (metadataResult.IsError)
+            {
+                throw new InvalidOperationException(metadataResult.FirstError.Description);
+            }
+
+            columnList.Add(metadataResult.Value);
         }
 
-        return columns;
+        return columnList.Count == 0
+            ? Error.NotFound(description: $"Table '{schemaName}.{tableName}' does not exist or has no columns.")
+            : TableSchema.Create(tableName, schemaName, columnList);
     }
 
     private static ColumnDataType MapToDomainType(string sqlDataType) =>

@@ -23,9 +23,15 @@ public class SetImportMappingsEndpoint(AppDbContext dbContext, ISchemaInspector 
         if (session == null)
             return Error.NotFound();
 
-        var tableSchema = await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct);
+        var errorOrTableSchema = await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct);
+        if (errorOrTableSchema.IsError)
+            return errorOrTableSchema.Errors;
 
-        var invalidTargets = req.Mappings.Values.Except(tableSchema.Keys, StringComparer.OrdinalIgnoreCase).ToList();
+        var tableSchema = errorOrTableSchema.Value;
+
+        var invalidTargets = req.Mappings.Select(m => m.TargetColumn)
+            .Except(tableSchema.Columns.Select(c => c.Name), StringComparer.OrdinalIgnoreCase)
+            .ToList();
         if (invalidTargets.Count > 0)
         {
             return Error.Validation(
@@ -35,8 +41,10 @@ public class SetImportMappingsEndpoint(AppDbContext dbContext, ISchemaInspector 
         }
 
         var unwritableTargets = req
-            .Mappings.Values
-            .Where(target => tableSchema.TryGetValue(target, out var column) && !column.IsWritable)
+            .Mappings.Select(m => m.TargetColumn)
+            .Where(target =>
+                tableSchema.TryGetColumn(target, out var metadata) && !metadata.IsWritable
+            )
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         if (unwritableTargets.Count > 0)
@@ -47,7 +55,7 @@ public class SetImportMappingsEndpoint(AppDbContext dbContext, ISchemaInspector 
         }
 
         var requiredColumns = tableSchema
-            .Values
+            .Columns
             .Where(c => c.IsRequired)
             .Select(c => c.Name)
             .ToList();

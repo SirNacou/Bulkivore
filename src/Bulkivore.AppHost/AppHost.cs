@@ -14,7 +14,10 @@ var registry = builder.AddContainerRegistry("ghcr", "ghcr.io", "sirnacou/bulkivo
 var (storage, storageInit) = builder.AddLocalS3Storage("ministack", bucketName: "bulkivore-imports");
 
 // 2. Database & Migrations
-var postgres = builder.AddPostgres("postgres").WithDataVolume().WithDbx();
+var postgres = builder.AddPostgres("postgres")
+    .WithDataVolume()
+    .WithDbx(b => b.WithContainerName("dbx").WithHostPort(port: 4444));
+
 var db = postgres.AddDatabase("bulkivore-db");
 var testDb = postgres.AddDatabase("bulkivore-test-db");
 

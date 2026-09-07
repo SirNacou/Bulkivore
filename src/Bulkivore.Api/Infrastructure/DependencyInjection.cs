@@ -31,7 +31,8 @@ public static class DependencyInjection
             // EFCore
             services.AddDbContextPool<AppDbContext>((sp, b) =>
                 {
-                    b.UseNpgsql("bulkivore-db")
+                    var conn = sp.GetRequiredService<IConfiguration>().GetConnectionString("bulkivore-db");
+                    b.UseNpgsql(conn)
                         .UseBulkivoreDbDefaults();
                 }
             );
@@ -53,6 +54,10 @@ public static class DependencyInjection
                     {
                         s3Config.ServiceURL = options.ServiceUrl;
                         s3Config.AuthenticationRegion = options.Region;
+                        if (options.ServiceUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                        {
+                            s3Config.UseHttp = true;
+                        }
                     }
 
                     var credentials = new BasicAWSCredentials(options.AccessKey, options.SecretKey);
