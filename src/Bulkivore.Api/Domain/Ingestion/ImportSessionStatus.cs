@@ -11,15 +11,12 @@ public enum ImportSessionStatus
 
 public static class ImportSessionStatusExtensions
 {
-    private static Error GetError(ImportSessionStatus status, ImportSessionStatus nextStatus) =>
-        Error.Conflict(description: $"Cannot transition from status '{status}' to status '{nextStatus}'.");
-
     extension(ImportSessionStatus status)
     {
         public ErrorOr<Success> CanTransitionTo(ImportSessionStatus nextStatus) =>
             (status, nextStatus) switch
             {
-                (not ImportSessionStatus.Initialized or not ImportSessionStatus.Mapped, ImportSessionStatus.Mapped) =>
+                (not (ImportSessionStatus.Initialized or ImportSessionStatus.Mapped), ImportSessionStatus.Mapped) =>
                     IngestionErrors.CannotApplyMappingFromStatus(status),
                 (not ImportSessionStatus.Mapped, ImportSessionStatus.Ingesting) =>
                     IngestionErrors.CannotCommitSessionFromStatus(status),

@@ -21,6 +21,6 @@ public class GetImportSessionEndpoint(AppDbContext dbContext)
         if (session is null)
             await Send.NotFoundAsync(ct);
         else
-            await Send.OkAsync(new GetImportSessionResponse(session), ct);
+            await Send.OkAsync(GetImportSessionResponse.FromSession(session), ct);
     }
 }

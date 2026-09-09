@@ -4,5 +4,5 @@ namespace Bulkivore.Api.Endpoints.Imports.InspectSession;
 
 public sealed class InspectSessionRequest
 {
-    public ImportSessionId SessionId { get; init; }
+    public ImportSessionId Id { get; init; }
 }

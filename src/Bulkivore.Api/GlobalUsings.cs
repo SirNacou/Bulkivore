@@ -1,6 +1,7 @@
 global using ErrorOr;
 global using FluentValidation;
 global using static Bulkivore.Api.Domain.Ingestion.ParsedCell;
+global using MiniExcel = MiniExcelLibs.MiniExcel;
 using Vogen;
 
 
@@ -24,5 +25,4 @@ using Vogen;
     explicitlySpecifyTypeInValueObject: true,
     primitiveEqualityGeneration: PrimitiveEqualityGeneration.GenerateOperatorsAndMethods,
     numericsGeneration: NumericsGeneration.Omit,
-    stringDefaultComparison: StringComparisonDefault.Omit
-)]
+    stringDefaultComparison: StringComparisonDefault.Omit)]

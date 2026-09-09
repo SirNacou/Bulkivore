@@ -21,7 +21,7 @@ public static class EndpointResultExtensions
                 return Task.CompletedTask;
             }
 
-            // 1. Success: Strongly typed, zero reflection needed
+            // 1. Success: Send payload directly
             if (!result.IsError)
             {
                 return response.SendAsync(result.Value, cancellation: ct);
@@ -38,29 +38,27 @@ public static class EndpointResultExtensions
             }
 
             // 3. First non-validation failure mapping
-            var problem = result.Errors
-                .Cast<Error?>()
-                .FirstOrDefault(e => e!.Value.Type != ErrorType.Validation);
+            var error = result.Errors.FirstOrDefault(e => e.Type != ErrorType.Validation);
 
-            return problem?.Type switch
+            var statusCode = error.Type switch
             {
-                ErrorType.Conflict => response.SendAsync(
-                    "Duplicate submission!",
-                    StatusCodes.Status409Conflict,
-                    cancellation: ct
-                ),
-                ErrorType.NotFound => response.SendNotFoundAsync(ct),
-                ErrorType.Unauthorized => response.SendUnauthorizedAsync(ct),
-                ErrorType.Forbidden => response.SendForbiddenAsync(ct),
-                null => throw new InvalidOperationException(
-                    "An error occurred, but no matching non-validation error was found."
-                ),
-                _ => response.SendAsync(
-                    new { error = problem.Value.Description ?? "Internal server error" },
-                    StatusCodes.Status500InternalServerError,
-                    cancellation: ct
-                )
+                ErrorType.Conflict => StatusCodes.Status409Conflict,
+                ErrorType.NotFound => StatusCodes.Status404NotFound,
+                ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+                ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+                _ => StatusCodes.Status500InternalServerError
             };
+
+            // Return structured details retaining the real domain error description
+            return response.SendAsync(
+                new
+                {
+                    title = error.Code,
+                    detail = error.Description,
+                    status = statusCode
+                },
+                statusCode,
+                cancellation: ct);
         }
     }
 }

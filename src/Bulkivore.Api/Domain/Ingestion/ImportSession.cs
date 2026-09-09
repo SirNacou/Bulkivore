@@ -53,9 +53,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
                 Error.Validation(
                     description: "Target table name cannot be empty.",
                     metadata:
-                    new() { [nameof(targetTable)] = targetTable }
-                )
-            );
+                    new() { [nameof(targetTable)] = targetTable }));
         }
 
         var errorOrFileName = SourceFile.TryFrom(fileName);
@@ -69,16 +67,10 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
             string.IsNullOrWhiteSpace(tenantId) ? "default" : tenantId,
             targetTable,
             errorOrFileName.ValueObject,
-            storageKey
-        );
+            storageKey);
 
         return importSession;
     }
-
-    public ErrorOr<Success> TransitionTo(ImportSessionStatus newStatus) =>
-        Status
-            .CanTransitionTo(newStatus)
-            .ThenDo(_ => Status = newStatus);
 
     public ErrorOr<Success> ApplyMappings(
         IReadOnlyList<ColumnMapping> mappings,
@@ -96,8 +88,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
         {
             return Error.Validation(
                 description: $"The following required columns are missing: {string.Join(", ", missingRequired)}",
-                metadata: new() { [nameof(requiredTargetColumns)] = string.Join(", ", requiredTargetColumns) }
-            );
+                metadata: new() { [nameof(requiredTargetColumns)] = string.Join(", ", requiredTargetColumns) });
         }
 
         _columnMappings = [.. mappings];
@@ -111,15 +102,15 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
             .CanTransitionTo(ImportSessionStatus.Ingesting)
             .ThenDo(_ => Status = ImportSessionStatus.Ingesting);
 
-    public ErrorOr<Success> Complete(int rowCount, List<RowError> errors)
+    public ErrorOr<Success> Complete(int successRowCount, List<RowError> errors)
     {
         var errorOr = Status.CanTransitionTo(ImportSessionStatus.Completed);
         if (errorOr.IsError)
             return errorOr;
 
         Status = ImportSessionStatus.Completed;
-        SuccessRowCount = rowCount;
-        FailedRowCount = rowCount;
+        SuccessRowCount = successRowCount;
+        FailedRowCount = errors.Count;
         _rowErrors = errors;
         CompletedAt = DateTimeOffset.UtcNow;
         return errorOr;

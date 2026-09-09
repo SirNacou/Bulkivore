@@ -3,18 +3,27 @@ using Npgsql;
 
 namespace Bulkivore.Api.Infrastructure.Services;
 
-public class PostgresSchemaInspector(IConfiguration configuration) : ISchemaInspector
+public class PostgresSchemaInspector([FromKeyedServices("bulkivore-test-db")] NpgsqlDataSource dataSource)
+    : ISchemaInspector
 {
-    private readonly string _connectionString = configuration.GetConnectionString("bulkivore-test-db")
-                                                ?? throw new InvalidOperationException(
-                                                    "Missing connection string for test database"
-                                                );
-
     public async Task<ErrorOr<TableSchema>> InspectTableAsync(
         string tableName,
         string schemaName = "public",
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(tableName))
+        {
+            return Error.Validation(description: "Table name cannot be empty.");
+        }
+
+        // Auto-detect schema-qualified table names (e.g., "test_a1b2.products")
+        if (tableName.Contains('.'))
+        {
+            var parts = tableName.Split('.', 2);
+            schemaName = parts[0];
+            tableName = parts[1];
+        }
+
         var columnList = new List<ColumnMetadata>();
 
         const string sql =
@@ -25,57 +34,41 @@ public class PostgresSchemaInspector(IConfiguration configuration) : ISchemaInsp
                 c.is_nullable,
                 c.character_maximum_length,
                 COALESCE(c.is_identity, 'NO') AS is_identity,
-                c.column_default
+                c.column_default,
+                c.is_generated
             FROM information_schema.columns c
-            WHERE c.table_schema = @schema
-              AND c.table_name = @table
+            WHERE LOWER(c.table_schema) = LOWER(@schema)
+              AND LOWER(c.table_name) = LOWER(@table)
             ORDER BY c.ordinal_position;
             """;
 
-        await using var conn = new NpgsqlConnection(_connectionString);
-        await conn.OpenAsync(ct);
+        await using var conn = await dataSource.OpenConnectionAsync(ct);
 
         await using var cmd = new NpgsqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("schema", schemaName);
-        cmd.Parameters.AddWithValue("table", tableName);
+        cmd.Parameters.AddWithValue("schema", schemaName.Trim());
+        cmd.Parameters.AddWithValue("table", tableName.Trim());
 
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
         {
-            var name = reader.GetString(0);
-            var rawDataType = reader.GetString(1);
-            var isNullable = reader.GetString(2).Equals("YES", StringComparison.OrdinalIgnoreCase);
-            var maxLength = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3);
-            var isIdentity = reader.GetString(4).Equals("YES", StringComparison.OrdinalIgnoreCase);
-            var defaultValue = reader.IsDBNull(5) ? null : reader.GetString(5);
+            var name = reader.GetString(reader.GetOrdinal("column_name"));
+            var dataType = MapToDomainType(reader.GetString(reader.GetOrdinal("data_type")));
+            var isNullable = reader.GetString(reader.GetOrdinal("is_nullable")) == "YES";
+            var maxLengthOrdinal = reader.GetOrdinal("character_maximum_length");
+            int? maxLength = reader.IsDBNull(maxLengthOrdinal)
+                ? null
+                : reader.GetInt32(maxLengthOrdinal);
+            var isIdentity = reader.GetString(reader.GetOrdinal("is_identity")) == "YES";
+            var hasDefault = !reader.IsDBNull(reader.GetOrdinal("column_default"));
+            var isGenerated = reader.GetString(reader.GetOrdinal("is_generated")) == "ALWAYS";
 
-            var hasDefault = !string.IsNullOrWhiteSpace(defaultValue);
-            var isGenerated = isIdentity
-                              || (defaultValue?.StartsWith("nextval(", StringComparison.OrdinalIgnoreCase) ?? false);
-
-            var domainType = MapToDomainType(rawDataType);
-
-            var metadataResult = ColumnMetadata.Create(
-                name: name,
-                dataType: domainType,
-                isNullable: isNullable,
-                maxLength: maxLength,
-                isIdentity: isIdentity,
-                hasDefault: hasDefault,
-                isGenerated: isGenerated
-            );
-
-            if (metadataResult.IsError)
-            {
-                throw new InvalidOperationException(metadataResult.FirstError.Description);
-            }
-
-            columnList.Add(metadataResult.Value);
+            columnList.Add(
+                new ColumnMetadata(name, dataType, isNullable, maxLength, isIdentity, hasDefault, isGenerated));
         }
 
         return columnList.Count == 0
             ? Error.NotFound(description: $"Table '{schemaName}.{tableName}' does not exist or has no columns.")
-            : TableSchema.Create(tableName, schemaName, columnList);
+            : TableSchema.Create(tableName.Trim(), schemaName.Trim(), columnList);
     }
 
     private static ColumnDataType MapToDomainType(string sqlDataType) =>

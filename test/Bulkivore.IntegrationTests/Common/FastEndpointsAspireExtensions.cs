@@ -1,13 +1,14 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Bulkivore.Api.Endpoints.Common;
 using FastEndpoints;
 
 namespace Bulkivore.IntegrationTests.Common;
 
 public static class FastEndpointsAspireExtensions
 {
-    private static readonly JsonSerializerOptions WebOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions WebOptions = JsonSerializerConfig.Default;
 
     extension(HttpClient client)
     {

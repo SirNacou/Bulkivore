@@ -12,15 +12,13 @@ public sealed record CommitImportResponse(
     IReadOnlyList<RowError> Errors
 )
 {
-    public CommitImportResponse(ImportSession session, long elapsedMilliseconds) : this(
-        session.Id,
-        session.Status,
-        session.ProcessedRows,
-        session.SuccessRowCount,
-        session.FailedRowCount,
-        elapsedMilliseconds,
-        session.RowErrors
-    )
-    {
-    }
+    public static CommitImportResponse FromSession(ImportSession session, long elapsedMilliseconds) =>
+        new(
+            session.Id,
+            session.Status,
+            session.ProcessedRows,
+            session.SuccessRowCount,
+            session.FailedRowCount,
+            elapsedMilliseconds,
+            session.RowErrors);
 };

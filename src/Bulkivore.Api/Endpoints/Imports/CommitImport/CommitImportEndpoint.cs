@@ -4,6 +4,7 @@ using System.Globalization;
 using Bulkivore.Api.Domain.Ingestion;
 using Bulkivore.Api.Domain.Ingestion.Ports;
 using Bulkivore.Api.Domain.Schema;
+using Bulkivore.Api.Endpoints.Common;
 using Bulkivore.Api.Infrastructure.Persistence;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,7 @@ public class CommitImportEndpoint(
     NpgsqlDataSource targetDataSource,
     IFileStorage fileStorage
 )
-    : Ep.Req<CommitImportRequest>.Res<ErrorOr<CommitImportResponse>>
+    : Ep.Req<CommitImportRequest>.Res<CommitImportResponse>
 {
     public override void Configure()
     {
@@ -29,43 +30,66 @@ public class CommitImportEndpoint(
         AllowAnonymous();
     }
 
-    public override async Task<ErrorOr<CommitImportResponse>> ExecuteAsync(
+    public override async Task HandleAsync(
         CommitImportRequest req,
         CancellationToken ct)
     {
         var session = await dbContext.ImportSessions.FirstOrDefaultAsync(x => x.Id == req.Id, ct);
         if (session == null)
-            return Error.NotFound();
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
 
         var errorOr = session.StartIngesting();
         if (errorOr.IsError)
-            return errorOr.Errors;
+        {
+            await Send.ErrorOrResultAsync(errorOr.Errors, ct);
+            return;
+        }
+
         await dbContext.SaveChangesAsync(ct);
 
         var stopWatch = Stopwatch.StartNew();
         List<RowError> rowErrors = [];
         var successCount = 0;
+        var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}_{session.File.Name}");
 
         try
         {
             var errorOrTableSchema = await schemaInspector.InspectTableAsync(session.TargetTable, ct: ct);
             if (errorOrTableSchema.IsError)
-                return errorOrTableSchema.Errors;
+            {
+                await Send.ErrorOrResultAsync(errorOrTableSchema.Errors, ct);
+                return;
+            }
+
             var tableSchema = errorOrTableSchema.Value;
 
             var mappings = session.ColumnMappings;
             var targetColumns = mappings.Select(m => m.TargetColumn).ToList();
 
+            // Split namespace and table name for PostgreSQL COPY statement
+            var tableParts = session.TargetTable.Split('.', 2);
+            var qualifiedTable = tableParts.Length == 2
+                ? $"\"{tableParts[0]}\".\"{tableParts[1]}\""
+                : $"\"{session.TargetTable}\"";
+
             var quotedColumns = string.Join(", ", targetColumns.Select(c => $"\"{c}\""));
             var copyCommand =
                 $"""
-                 COPY "{session.TargetTable}" ({quotedColumns}) FROM STDIN (FORMAT BINARY)
+                 COPY {qualifiedTable} ({quotedColumns}) FROM STDIN (FORMAT BINARY)
                  """;
 
             await using var connection = await targetDataSource.OpenConnectionAsync(ct);
             await using var writer = await connection.BeginBinaryImportAsync(copyCommand, ct);
-            await using var fileStream = await fileStorage.OpenReadAsync(session.StorageKey, ct);
-            var rows = fileStream.QueryAsync(useHeaderRow: true, cancellationToken: ct);
+            await using (var s3Stream = await fileStorage.OpenReadAsync(session.StorageKey, ct))
+            {
+                await using var localFile = File.Create(tempFilePath);
+                await s3Stream.CopyToAsync(localFile, ct);
+            }
+
+            var rows = MiniExcel.QueryAsync(tempFilePath, useHeaderRow: true, cancellationToken: ct);
 
             var currentRowIndex = 1;
 
@@ -88,9 +112,7 @@ public class CommitImportEndpoint(
 
                     if (cell is ParsedError error)
                     {
-                        rowErrors.Add(
-                            RowError.Create(currentRowIndex, sourceHeader, rawVal?.ToString(), error.Message)
-                        );
+                        rowErrors.Add(new(currentRowIndex, sourceHeader, rawVal?.ToString(), error.Message));
                         hasRowError = true;
                         break;
                     }
@@ -105,10 +127,9 @@ public class CommitImportEndpoint(
                 foreach (var cell in rowValues)
                 {
                     await cell.Match(
-                        suc => WritePreconvertedValueAsync(writer, suc),
+                        suc => WritePreconvertedValueAsync(writer, suc, ct),
                         _ => writer.WriteNullAsync(ct),
-                        _ => Task.CompletedTask
-                    );
+                        _ => Task.CompletedTask);
                 }
 
                 successCount++;
@@ -121,17 +142,20 @@ public class CommitImportEndpoint(
         }
         catch (Exception e)
         {
+            await Console.Error.WriteLineAsync($"[CRITICAL INGESTION CRASH]: {e}");
             session.Fail(e.Message);
             await dbContext.SaveChangesAsync(ct);
-            ThrowError($"Ingestion pipeline failed: {e.Message}", 500);
+            ThrowError($"CRASH: {e.GetType().Name} -> {e.Message}\n{e.StackTrace}", 400);
         }
         finally
         {
+            if (File.Exists(tempFilePath))
+                File.Delete(tempFilePath);
             await TryDeleteStorageFileAsync(session.StorageKey, ct);
             stopWatch.Stop();
         }
 
-        return new CommitImportResponse(session, stopWatch.ElapsedMilliseconds);
+        await Send.ErrorOrResultAsync(CommitImportResponse.FromSession(session, stopWatch.ElapsedMilliseconds), ct);
     }
 
     private async Task TryDeleteStorageFileAsync(string storageKey, CancellationToken ct)
@@ -231,7 +255,8 @@ public class CommitImportEndpoint(
 
     private static async Task WritePreconvertedValueAsync(
         NpgsqlBinaryImporter writer,
-        ParsedSuccess success)
+        ParsedSuccess success,
+        CancellationToken ct = default)
     {
         var value = success.Value;
         var dataType = success.DataType;
@@ -239,35 +264,35 @@ public class CommitImportEndpoint(
         switch (dataType)
         {
             case ColumnDataType.Integer:
-                await writer.WriteAsync((int)value, NpgsqlDbType.Integer);
+                await writer.WriteAsync((int)value, NpgsqlDbType.Integer, ct);
                 break;
             case ColumnDataType.BigInt:
-                await writer.WriteAsync((long)value, NpgsqlDbType.Bigint);
+                await writer.WriteAsync((long)value, NpgsqlDbType.Bigint, ct);
                 break;
             case ColumnDataType.Decimal:
-                await writer.WriteAsync((decimal)value, NpgsqlDbType.Numeric);
+                await writer.WriteAsync((decimal)value, NpgsqlDbType.Numeric, ct);
                 break;
             case ColumnDataType.Boolean:
-                await writer.WriteAsync((bool)value, NpgsqlDbType.Boolean);
+                await writer.WriteAsync((bool)value, NpgsqlDbType.Boolean, ct);
                 break;
             case ColumnDataType.DateTime:
-                await writer.WriteAsync((DateTime)value, NpgsqlDbType.Timestamp);
+                await writer.WriteAsync((DateTime)value, NpgsqlDbType.Timestamp, ct);
                 break;
             case ColumnDataType.Date:
-                await writer.WriteAsync((DateOnly)value, NpgsqlDbType.Date);
+                await writer.WriteAsync((DateOnly)value, NpgsqlDbType.Date, ct);
                 break;
             case ColumnDataType.Uuid:
-                await writer.WriteAsync((Guid)value, NpgsqlDbType.Uuid);
+                await writer.WriteAsync((Guid)value, NpgsqlDbType.Uuid, ct);
                 break;
             case ColumnDataType.Json:
-                await writer.WriteAsync((string)value, NpgsqlDbType.Jsonb);
+                await writer.WriteAsync((string)value, NpgsqlDbType.Jsonb, ct);
                 break;
             case ColumnDataType.Binary:
-                await writer.WriteAsync((byte[])value, NpgsqlDbType.Bytea);
+                await writer.WriteAsync((byte[])value, NpgsqlDbType.Bytea, ct);
                 break;
             case ColumnDataType.Text:
             default:
-                await writer.WriteAsync((string)value, NpgsqlDbType.Text);
+                await writer.WriteAsync((string)value, NpgsqlDbType.Text, ct);
                 break;
         }
     }

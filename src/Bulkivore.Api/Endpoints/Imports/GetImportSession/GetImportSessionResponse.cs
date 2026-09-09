@@ -8,23 +8,25 @@ public record GetImportSessionResponse(
     string TargetTable,
     string FileName,
     int ProcessedRows,
+    int SuccessRowCount,
+    int FailedRowCount,
     string? ErrorMessage,
     IReadOnlyList<ColumnMapping> Mappings,
     DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt
 )
 {
-    public GetImportSessionResponse(ImportSession session) : this(
-        session.Id,
-        session.Status,
-        session.TargetTable,
-        session.File.Name,
-        session.ProcessedRows,
-        session.ErrorMessage,
-        session.ColumnMappings,
-        session.CreatedAt,
-        session.CompletedAt
-    )
-    {
-    }
+    public static GetImportSessionResponse FromSession(ImportSession session) =>
+        new(
+            session.Id,
+            session.Status,
+            session.TargetTable,
+            session.File.Name,
+            session.ProcessedRows,
+            session.SuccessRowCount,
+            session.FailedRowCount,
+            session.ErrorMessage,
+            session.ColumnMappings,
+            session.CreatedAt,
+            session.CompletedAt);
 };
