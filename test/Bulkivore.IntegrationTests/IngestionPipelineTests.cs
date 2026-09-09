@@ -6,14 +6,34 @@ using Bulkivore.Api.Endpoints.Imports.InspectSession;
 using Bulkivore.Api.Endpoints.Imports.SetImportMappings;
 using Bulkivore.IntegrationTests.Common;
 using Bulkivore.IntegrationTests.Fixtures;
-using Npgsql;
 
 namespace Bulkivore.IntegrationTests;
+
+public class PipelineState : IAsyncDisposable
+{
+    public TestSchemaScope Schema { get; set; } = null!;
+    public ImportSessionId SessionId { get; set; }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Schema.DisposeAsync();
+    }
+}
 
 public class IngestionPipelineTests
 {
     [ClassDataSource<AppFixture>(Shared = SharedType.PerTestSession)]
     public required AppFixture AspireFixture { get; init; }
+
+    [ClassDataSource<PipelineState>(Shared = SharedType.PerTestSession)]
+    public required PipelineState State { get; init; }
+
+    private const string CsvContent = """
+                                      sku,name,price,quantity
+                                      SKU-001,Ergonomic Chair,249.99,15
+                                      SKU-002,Mechanical Keyboard,129.50,42
+                                      SKU-003,USB-C Dock,89.00,0
+                                      """;
 
     [Test]
     public async Task HealthCheck_ReturnsOk()
@@ -25,97 +45,106 @@ public class IngestionPipelineTests
     }
 
     [Test]
-    public async Task InitializeImportSession_ReturnsPresignedUrlAndHeaders()
+    public async Task InitializeSession_ReturnsSessionIdAndUploadUrl()
     {
         var client = AspireFixture.CreateHttpClient("api");
-        await using var schema = await TestSchemaScope.CreateAsync(AspireFixture.App);
-
-        var uniqueTenant = $"tenant_{Guid.NewGuid():N}";
+        State.Schema = await TestSchemaScope.CreateAsync(AspireFixture.App);
 
         var req = new InitializeSessionRequest
         {
-            TargetTable = schema.TargetTable,
+            TargetTable = State.Schema.TargetTable,
             FileName = "test_products.csv",
-            TenantId = uniqueTenant
+            TenantId = $"tenant_{Guid.NewGuid():N}"
         };
 
-        var (initRes, initPayload, initErr) =
+        var (res, payload, err) =
             await client.PostAsync<InitializeSessionEndpoint, InitializeSessionRequest, InitializeSessionResponse>(req);
 
-        await initErr.Should().BeNull();
-        await initRes.StatusCode.Should().EqualTo(HttpStatusCode.OK);
-        await initPayload.Should().NotBeNull();
-        var sessionId = initPayload.SessionId;
+        await err.Should().BeNull();
+        await res.StatusCode.Should().EqualTo(HttpStatusCode.OK);
+        await Assert.That(payload).IsNotNull();
+        await Assert.That(payload!.SessionId).IsNotEqualTo(ImportSessionId.Empty);
+        await Assert.That(payload.UploadUrl).IsNotEmpty();
 
-        using var csvContent = new StringContent(
-            """
-            sku,name,price,quantity
-            SKU-001,Ergonomic Chair,249.99,15
-            SKU-002,Mechanical Keyboard,129.50,42
-            SKU-003,USB-C Dock,89.00,0
-            """);
-        var uploadResponse = await client.PutAsync(initPayload.UploadUrl, csvContent);
+        State.SessionId = payload.SessionId;
+
+        using var csvContent = new StringContent(CsvContent);
+        var uploadResponse = await client.PutAsync(payload.UploadUrl, csvContent);
         await uploadResponse.StatusCode.Should().EqualTo(HttpStatusCode.OK);
+    }
 
-        var (inspectRes, inspectPayload, inspectErr) =
+    [Test, DependsOn(nameof(InitializeSession_ReturnsSessionIdAndUploadUrl))]
+    public async Task InspectSession_ReturnsExpectedHeaders()
+    {
+        var client = AspireFixture.CreateHttpClient("api");
+
+        var (res, payload, err) =
             await client.GetAsync<InspectSessionEndpoint, InspectSessionRequest, InspectSessionResponse>(
-                new()
-                {
-                    Id = sessionId
-                });
-        await inspectErr.Should().BeNull();
-        await inspectRes.StatusCode.Should().EqualTo(HttpStatusCode.OK);
-        await Assert.That(inspectPayload)
+                new() { Id = State.SessionId });
+
+        await err.Should().BeNull();
+        await res.StatusCode.Should().EqualTo(HttpStatusCode.OK);
+        await Assert.That(payload)
             .IsNotNull()
             .And.Member(
                 x => x.Headers,
                 headers => headers.IsEquivalentTo(["sku", "name", "price", "quantity"]));
+    }
 
-        var mappingReq = new SetImportMappingsRequest
-        {
-            Id = sessionId,
-            Mappings =
-            [
-                ColumnMapping.Create("sku", "sku").Value,
-                ColumnMapping.Create("name", "name").Value,
-                ColumnMapping.Create("price", "price").Value,
-                ColumnMapping.Create("quantity", "quantity").Value
-            ]
-        };
+    [Test, DependsOn(nameof(InspectSession_ReturnsExpectedHeaders))]
+    public async Task SetMappings_AcceptsValidColumnMapping()
+    {
+        var client = AspireFixture.CreateHttpClient("api");
 
-        var (mapRes, mapPayload, mapErr) =
+        var (res, payload, err) =
             await client.PostAsync<SetImportMappingsEndpoint, SetImportMappingsRequest, SetImportMappingsResponse>(
-                mappingReq);
+                new()
+                {
+                    Id = State.SessionId,
+                    Mappings =
+                    [
+                        ColumnMapping.Create("sku", "sku").Value,
+                        ColumnMapping.Create("name", "name").Value,
+                        ColumnMapping.Create("price", "price").Value,
+                        ColumnMapping.Create("quantity", "quantity").Value
+                    ]
+                });
 
-        await mapErr.Should().BeNull();
-        await mapRes.StatusCode.Should().EqualTo(HttpStatusCode.OK);
-        await mapPayload.Should().NotBeNull();
+        await err.Should().BeNull();
+        await res.StatusCode.Should().EqualTo(HttpStatusCode.OK);
+        await payload.Should().NotBeNull();
+    }
 
-        var (commitRes, commitPayload, commitErr) =
+    [Test, DependsOn(nameof(SetMappings_AcceptsValidColumnMapping))]
+    public async Task CommitImport_ProcessesAllRowsSuccessfully()
+    {
+        var client = AspireFixture.CreateHttpClient("api");
+
+        var (res, payload, err) =
             await client.PostAsync<CommitImportEndpoint, CommitImportRequest, CommitImportResponse>(
-                new() { Id = sessionId });
+                new() { Id = State.SessionId });
 
-        await commitErr.Should().BeNull();
-        await commitRes.StatusCode.Should().EqualTo(HttpStatusCode.OK);
-        await Assert.That(commitPayload)
+        await err.Should().BeNull();
+        await res.StatusCode.Should().EqualTo(HttpStatusCode.OK);
+        await Assert.That(payload)
             .IsNotNull()
-            .And.Member(
-                x => x.SuccessCount,
-                successCount => successCount.IsEqualTo(3))
-            .And.Member(
-                x => x.FailedCount,
-                failedCount => failedCount.IsEqualTo(0));
+            .And.Member(x => x.SuccessCount, count => count.IsEqualTo(3))
+            .And.Member(x => x.FailedCount, count => count.IsEqualTo(0));
+    }
 
-        var (getRes, getPayload, getErr) =
+    [Test, DependsOn(nameof(CommitImport_ProcessesAllRowsSuccessfully))]
+    public async Task GetImportSession_ReturnsCorrectRowCount()
+    {
+        var client = AspireFixture.CreateHttpClient("api");
+
+        var (res, payload, err) =
             await client.GetAsync<GetImportSessionEndpoint, GetImportSessionRequest, GetImportSessionResponse>(
-                new() { Id = sessionId });
+                new() { Id = State.SessionId });
 
-        await getErr.Should().BeNull();
-        await getRes.StatusCode.Should().EqualTo(HttpStatusCode.OK);
-        await Assert.That(getPayload)
+        await err.Should().BeNull();
+        await res.StatusCode.Should().EqualTo(HttpStatusCode.OK);
+        await Assert.That(payload)
             .IsNotNull()
-            .And.Member(
-                x => x.SuccessRowCount,
-                rowCount => rowCount.IsEqualTo(3));
+            .And.Member(x => x.SuccessRowCount, count => count.IsEqualTo(3));
     }
 }

@@ -12,5 +12,5 @@ public class AppFixture : AspireFixture<Projects.Bulkivore_AppHost>
         "api", "bulkivore-db", "bulkivore-test-db", "ministack"
     ];
 
-    protected override IEnumerable<string> ResourcesToRemove() => ["ghcr"];
+    protected override IEnumerable<string> ResourcesToRemove() => ["ghcr", "dbx"];
 }
