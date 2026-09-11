@@ -1,0 +1,32 @@
+server {
+    listen 80;
+    server_name localhost;
+
+    # Nuxt SPA routing: fallback all subroutes to index.html
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files \(uri\)uri/ /index.html;
+    }
+
+    # Cache immutable hashed Nuxt bundle files
+    location /_nuxt/ {
+        root /usr/share/nginx/html;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Reverse proxy API calls to the .NET API
+    location /api/ {
+        proxy_pass ${API_URL}/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection keep-alive;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        
+        # Ingestion timeouts for large uploads
+        proxy_read_timeout 300s;
+        client_max_body_size 100M;
+    }
+}

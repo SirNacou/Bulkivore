@@ -35,8 +35,7 @@ else
         .AddDockerfile(
             name: "migration-bundle",
             contextPath: Path.Combine("..", ".."),
-            dockerfilePath: "src/Bulkivore.MigrationService/Dockerfile"
-        )
+            dockerfilePath: "src/Bulkivore.MigrationService/Dockerfile")
         .WithReference(db)
         .WithArgs("--connection", db.Resource.ConnectionStringExpression)
         .WaitFor(db);
@@ -52,6 +51,28 @@ var api = builder
     .WithS3Storage(storage, storageInit, bucketName: "bulkivore-imports")
     .WaitForCompletion(migrationRunner)
     .WithHttpHealthCheck("/health");
+
+IResourceBuilder<IResource> frontend;
+
+if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode)
+{
+    // Fast local development: Run Nuxt dev server via Bun with hot reload (HMR)
+    frontend = builder.AddJavaScriptApp("frontend", "../frontend")
+        .WithBun()
+        .WithHttpEndpoint(env: "PORT")
+        .WithExternalHttpEndpoints()
+        .WithEnvironment("NUXT_PUBLIC_API_BASE", api.GetEndpoint("http"))
+        .WaitFor(api);
+}
+else
+{
+    // Production / Publish / Docker Compose: Package into the Nginx container
+    frontend = builder.AddDockerfile("frontend", "../frontend")
+        .WithHttpEndpoint(targetPort: 80, name: "http")
+        .WithExternalHttpEndpoints()
+        .WithEnvironment("API_URL", api.GetEndpoint("http"))
+        .WaitFor(api);
+}
 
 builder.Build().Run();
 
