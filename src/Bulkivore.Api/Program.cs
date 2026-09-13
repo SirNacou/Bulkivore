@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Bulkivore.Api.Endpoints.Common;
 using Bulkivore.Api.Endpoints.Common.Middlewares;
 using Bulkivore.Api.Infrastructure;
@@ -13,18 +12,30 @@ builder.AddServiceDefaults();
 builder.AddKeyedNpgsqlDataSource("bulkivore-test-db");
 
 builder.Services.AddInfrastructure();
-builder.Services.AddFastEndpoints().OpenApiDocument();
+builder.Services.AddFastEndpoints()
+    .OpenApiDocument(o =>
+    {
+        o.DocumentName = "v1";
+        o.ShortSchemaNames = true;
+    });
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
-app.UseHttpsRedirection();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseDefaultExceptionHandler()
     .UseFastEndpoints(config =>
     {
+        config.Binding.UsePropertyNamingPolicy = true;
         config.Serializer.Options.Configure();
 
         config.Endpoints.RoutePrefix = "/api";
+        config.Endpoints.ShortNames = true;
 
         config.Errors.UseProblemDetails();
         config.Endpoints.Configurator =
@@ -45,7 +56,7 @@ app.UseDefaultExceptionHandler()
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi(pattern: "/openapi/{documentName}.yaml");
     app.MapScalarApiReference();
 }
 

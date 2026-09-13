@@ -16,7 +16,7 @@ var (storage, storageInit) = builder.AddLocalS3Storage("ministack", bucketName: 
 // 2. Database & Migrations
 var postgres = builder.AddPostgres("postgres")
     .WithDataVolume()
-    .WithDbx(b => b.WithContainerName("dbx").WithHostPort(port: 4444));
+    .WithDbx(b => b.WithHostPort(port: 4444), containerName: "dbx");
 
 var db = postgres.AddDatabase("bulkivore-db");
 var testDb = postgres.AddDatabase("bulkivore-test-db");
@@ -47,6 +47,7 @@ var api = builder
     .AsGhcrService(registry, name: "api", tag: "latest")
     .WithReference(db)
     .WithReference(testDb)
+    .WithHttpEndpoint(port: 3001)
     .WithEnvironment("TEST_DB_CONN", testDb.Resource.UriExpression)
     .WithS3Storage(storage, storageInit, bucketName: "bulkivore-imports")
     .WaitForCompletion(migrationRunner)
@@ -59,7 +60,7 @@ if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode)
     // Fast local development: Run Nuxt dev server via Bun with hot reload (HMR)
     frontend = builder.AddJavaScriptApp("frontend", "../frontend")
         .WithBun()
-        .WithHttpEndpoint(env: "PORT")
+        .WithHttpEndpoint(env: "PORT", port: 3000)
         .WithExternalHttpEndpoints()
         .WithEnvironment("NUXT_PUBLIC_API_BASE", api.GetEndpoint("http"))
         .WaitFor(api);

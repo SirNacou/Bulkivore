@@ -7,3 +7,4 @@ riderModule.iml
 .env*
 !.env.example
 *.sln.DotSettings.user
+/node_modules/
