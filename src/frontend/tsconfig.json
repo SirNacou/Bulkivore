@@ -2,6 +2,9 @@
   // https://nuxt.com/docs/guide/concepts/typescript
   "compilerOptions": {
     "strict": true,
+    "types": [
+      "node"
+    ],
     "moduleResolution": "bundler"
   },
   "files": [],

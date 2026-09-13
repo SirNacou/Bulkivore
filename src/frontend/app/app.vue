@@ -1,6 +1,9 @@
 import { NuxtPage } from '../.nuxt/components';
+
 <template>
-    <UApp>
-        <NuxtPage />
-    </UApp>
+  <UApp>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </UApp>
 </template>

@@ -36,6 +36,7 @@ app.UseDefaultExceptionHandler()
 
         config.Endpoints.RoutePrefix = "/api";
         config.Endpoints.ShortNames = true;
+        config.Endpoints.NameGenerator = context => context.EndpointType.Name.TrimEnd("Endpoint").ToString();
 
         config.Errors.UseProblemDetails();
         config.Endpoints.Configurator =
