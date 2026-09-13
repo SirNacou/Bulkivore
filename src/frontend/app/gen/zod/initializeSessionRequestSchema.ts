@@ -6,7 +6,7 @@
 import * as z from 'zod'
 
 export const initializeSessionRequestSchema = z.object({
-  targetTable: z.string(),
-  fileName: z.string(),
+  targetTable: z.string().min(1),
+  fileName: z.string().min(1),
   tenantId: z.string().nullish(),
 })

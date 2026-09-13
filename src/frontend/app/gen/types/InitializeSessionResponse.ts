@@ -6,6 +6,11 @@
 import type { ImportSessionId } from './ImportSessionId'
 
 export type InitializeSessionResponse = {
+    /**
+     * @description
+     * Format: `uuid`
+     * @type string
+    */
     sessionId: ImportSessionId;
     uploadUrl: string;
     storageKey: string;

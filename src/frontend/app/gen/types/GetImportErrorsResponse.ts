@@ -7,6 +7,11 @@ import type { IReadOnlyListOfRowError } from './IReadOnlyListOfRowError'
 import type { ImportSessionId } from './ImportSessionId'
 
 export type GetImportErrorsResponse = {
+    /**
+     * @description
+     * Format: `uuid`
+     * @type string
+    */
     id: ImportSessionId;
     /**
      * @description

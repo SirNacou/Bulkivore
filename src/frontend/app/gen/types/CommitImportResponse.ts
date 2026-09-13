@@ -8,6 +8,11 @@ import type { ImportSessionId } from './ImportSessionId'
 import type { ImportSessionStatusKey } from './ImportSessionStatus'
 
 export type CommitImportResponse = {
+    /**
+     * @description
+     * Format: `uuid`
+     * @type string
+    */
     id: ImportSessionId;
     status: ImportSessionStatusKey;
     /**

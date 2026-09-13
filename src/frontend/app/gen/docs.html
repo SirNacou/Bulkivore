@@ -31,12 +31,62 @@
     }
   ],
   "paths": {
+    "/api/imports": {
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "operationId": "ListImports",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ImportSessionStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListImportsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/imports/initialize": {
       "post": {
         "tags": [
           "Imports"
         ],
-        "operationId": "InitializeSessionEndpoint",
+        "operationId": "InitializeSession",
         "requestBody": {
           "content": {
             "application/json": {
@@ -79,7 +129,7 @@
         "tags": [
           "Imports"
         ],
-        "operationId": "GetImportSessionEndpoint",
+        "operationId": "GetImportSession",
         "parameters": [
           {
             "name": "id",
@@ -112,7 +162,7 @@
         "tags": [
           "Imports"
         ],
-        "operationId": "CommitImportEndpoint",
+        "operationId": "CommitImport",
         "parameters": [
           {
             "name": "id",
@@ -145,7 +195,7 @@
         "tags": [
           "Imports"
         ],
-        "operationId": "GetImportErrorsEndpoint",
+        "operationId": "GetImportErrors",
         "parameters": [
           {
             "name": "id",
@@ -165,7 +215,7 @@
             }
           },
           {
-            "name": "page_size",
+            "name": "pageSize",
             "in": "query",
             "required": true,
             "schema": {
@@ -196,7 +246,7 @@
         "tags": [
           "Imports"
         ],
-        "operationId": "ExportImportErrorsEndpoint",
+        "operationId": "ExportImportErrors",
         "parameters": [
           {
             "name": "id",
@@ -222,7 +272,7 @@
         "tags": [
           "Imports"
         ],
-        "operationId": "InspectSessionEndpoint",
+        "operationId": "InspectSession",
         "parameters": [
           {
             "name": "id",
@@ -255,7 +305,7 @@
         "tags": [
           "Imports"
         ],
-        "operationId": "SetImportMappingsEndpoint",
+        "operationId": "SetImportMappings",
         "parameters": [
           {
             "name": "id",
@@ -308,7 +358,7 @@
         "tags": [
           "Ingestion"
         ],
-        "operationId": "InspectHeadersEndpoint",
+        "operationId": "InspectHeaders",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -346,15 +396,15 @@
         }
       }
     },
-    "/api/schema/{table_name}": {
+    "/api/schema/{tableName}": {
       "get": {
         "tags": [
           "Schema"
         ],
-        "operationId": "GetTableSchemaEndpoint",
+        "operationId": "GetTableSchema",
         "parameters": [
           {
-            "name": "table_name",
+            "name": "tableName",
             "in": "path",
             "required": true,
             "schema": {
@@ -646,7 +696,10 @@
           }
         }
       },
-      "ImportSessionId": {},
+      "ImportSessionId": {
+        "type": "string",
+        "format": "uuid"
+      },
       "ImportSessionStatus": {
         "enum": [
           "Initialized",
@@ -657,6 +710,57 @@
         ],
         "type": "string"
       },
+      "ImportSummaryDto": {
+        "required": [
+          "id",
+          "status",
+          "targetTable",
+          "fileName",
+          "processedRows",
+          "successRowCount",
+          "failedRowCount",
+          "createdAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ImportSessionId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportSessionStatus"
+          },
+          "targetTable": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "processedRows": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "successRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "InitializeSessionRequest": {
         "required": [
           "targetTable",
@@ -665,9 +769,11 @@
         "type": "object",
         "properties": {
           "targetTable": {
+            "minLength": 1,
             "type": "string"
           },
           "fileName": {
+            "minLength": 1,
             "type": "string"
           },
           "tenantId": {
@@ -785,6 +891,12 @@
           "$ref": "#/components/schemas/DictionaryOfStringAndObject"
         }
       },
+      "IReadOnlyListOfImportSummaryDto": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ImportSummaryDto"
+        }
+      },
       "IReadOnlyListOfRowError": {
         "type": "array",
         "items": {
@@ -795,6 +907,32 @@
         "type": "array",
         "items": {
           "type": "string"
+        }
+      },
+      "ListImportsResponse": {
+        "required": [
+          "page",
+          "pageSize",
+          "totalCount",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "$ref": "#/components/schemas/IReadOnlyListOfImportSummaryDto"
+          }
         }
       },
       "ListOfColumnMapping": {

@@ -4,7 +4,15 @@
 */
 
 export type InitializeSessionRequest = {
+    /**
+     * @minLength 1
+     * @type string
+    */
     targetTable: string;
+    /**
+     * @minLength 1
+     * @type string
+    */
     fileName: string;
     tenantId?: string | null;
 };

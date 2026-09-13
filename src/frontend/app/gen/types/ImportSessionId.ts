@@ -3,4 +3,9 @@
 * Do not edit manually.
 */
 
-export type ImportSessionId = unknown;
+/**
+ * @description
+ * Format: `uuid`
+ * @type string
+*/
+export type ImportSessionId = string;

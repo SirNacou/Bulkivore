@@ -17,6 +17,10 @@ builder.Services.AddFastEndpoints()
     {
         o.DocumentName = "v1";
         o.ShortSchemaNames = true;
+        o.ConfigureOpenApi = options =>
+        {
+            options.MapVogenTypesInBulkivore_Api();
+        };
     });
 
 var app = builder.Build();
@@ -31,12 +35,11 @@ if (!app.Environment.IsDevelopment())
 app.UseDefaultExceptionHandler()
     .UseFastEndpoints(config =>
     {
-        config.Binding.UsePropertyNamingPolicy = true;
         config.Serializer.Options.Configure();
 
         config.Endpoints.RoutePrefix = "/api";
         config.Endpoints.ShortNames = true;
-        config.Endpoints.NameGenerator = context => context.EndpointType.Name.TrimEnd("Endpoint").ToString();
+        config.Endpoints.NameGenerator = context => context.EndpointType.Name.RemoveSuffix("Endpoint").ToString();
 
         config.Errors.UseProblemDetails();
         config.Endpoints.Configurator =
@@ -58,7 +61,7 @@ app.UseDefaultExceptionHandler()
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi(pattern: "/openapi/{documentName}.yaml");
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options => options.WithOpenApiRoutePattern("/openapi/{documentName}.yaml"));
 }
 
 app.Run();

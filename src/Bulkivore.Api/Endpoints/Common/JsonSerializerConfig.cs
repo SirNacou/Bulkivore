@@ -21,8 +21,6 @@ public static class JsonSerializerConfig
         public void Configure()
         {
             options.PropertyNameCaseInsensitive = true;
-            options.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
-            options.PropertyNameCaseInsensitive = true;
             options.Converters.Add(new JsonStringEnumConverter());
 
             // Register custom converters here (e.g., Vogen, DateOnly, etc.)

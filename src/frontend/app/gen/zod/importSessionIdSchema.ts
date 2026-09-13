@@ -5,4 +5,4 @@
 
 import * as z from 'zod'
 
-export const importSessionIdSchema = z.unknown()
+export const importSessionIdSchema = z.uuid()

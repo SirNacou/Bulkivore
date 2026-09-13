@@ -11,6 +11,11 @@ import type { ImportSessionId } from './ImportSessionId'
 import type { ImportSessionStatusKey } from './ImportSessionStatus'
 
 export type InspectSessionResponse = {
+    /**
+     * @description
+     * Format: `uuid`
+     * @type string
+    */
     sessionId: ImportSessionId;
     status: ImportSessionStatusKey;
     headers: IReadOnlyListOfString;

@@ -3,9 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "types": [
-      "node"
+      "node",
     ],
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
   },
   "files": [],
   "references": [
