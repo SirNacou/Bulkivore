@@ -49,6 +49,7 @@ var api = builder
     .WithReference(testDb)
     .WithHttpEndpoint(port: 3001)
     .WithEnvironment("TEST_DB_CONN", testDb.Resource.UriExpression)
+    .WithEnvironment("CorsSettings__AllowedOrigins__0", "http://localhost:3000")
     .WithS3Storage(storage, storageInit, bucketName: "bulkivore-imports")
     .WaitForCompletion(migrationRunner)
     .WithHttpHealthCheck("/health");

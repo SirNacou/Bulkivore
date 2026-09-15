@@ -1,15 +1,15 @@
 <script lang="ts" setup>
 import { useQuery } from '@tanstack/vue-query'
-import { getTableSchemaQueryOptions } from '~/gen/hooks'
+import { getTableSchemaOptions } from '~/client/@tanstack/vue-query.gen'
 
 const count = ref(0)
-const { data, isLoading, error } = useQuery(getTableSchemaQueryOptions({ path: { tableName: "products" } }))
+const { data } = useQuery(getTableSchemaOptions({ path: { tableName: 'products' } }))
 </script>
 
 <template>
   <p>Hello</p>
   <UButton @click="count++">{{ count }}</UButton>
-  <div v-for="value in data">
-    {{ value.name }} - {{ value.dataType }}
+  <div v-for="(item, index) in data" :key="index">
+    {{ item.name }} - {{ item.dataType }}
   </div>
 </template>

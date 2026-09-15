@@ -25,8 +25,9 @@
 ## Build & Test
 
 ```bash
-dotnet build Bulkivore.slnx        # Build entire solution
-dotnet test test/Bulkivore.IntegrationTests  # Run integration tests
+dotnet build Bulkivore.slnx  # Build entire solution
+# Run integration tests (`dotnet test` is unsupported for MTP projects on .NET 10 SDK):
+dotnet run --project test/Bulkivore.IntegrationTests
 ```
 
 - **`TreatWarningsAsErrors` is ON** globally via `Directory.Build.props`. Any warning = build failure.
@@ -41,6 +42,7 @@ dotnet test test/Bulkivore.IntegrationTests  # Run integration tests
 - **Infrastructure layer**: `src/Bulkivore.Api/Infrastructure/` — EF Core, AWS, services. DI wiring in `DependencyInjection.cs`.
 - **Extension methods for DI**: `extension(IServiceCollection services)` syntax (C# 14).
 - **Route prefix**: All API endpoints use `/api` prefix (configured in `Program.cs`).
+- **JSON naming**: Default camelCase everywhere. Do NOT set a custom `PropertyNamingPolicy` or `UsePropertyNamingPolicy` — it silently breaks multi-word query-param binding and skews the OpenAPI spec from runtime bodies.
 - **Test DB**: Separate `bulkivore-test-db` database. Connection string injected via Aspire as `TEST_DB_CONN`.
 
 ## Testing
@@ -50,6 +52,8 @@ dotnet test test/Bulkivore.IntegrationTests  # Run integration tests
 - **Schema isolation**: Tests use `TestSchemaScope` to create/drop unique PostgreSQL schemas per test.
 - **FastEndpoints typed HTTP calls**: Use `FastEndpointsAspireExtensions` helpers (`client.PostAsync<TEndpoint, TReq, TRes>(req)`).
 - **Test session sharing**: `Shared = SharedType.PerTestSession` for expensive Aspire fixtures.
+- **Test organization**: One self-contained file per endpoint (`<Name>Tests.cs`); shared setup lives in `Fixtures/ImportTestHelper.cs`. No cross-file `DependsOn` chains.
+- **Shared test DB**: Tests run in parallel against one database — assert containment (`Items.Any(...)`), never exact total counts.
 
 ## Migrations
 

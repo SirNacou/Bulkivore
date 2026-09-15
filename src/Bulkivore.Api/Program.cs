@@ -1,9 +1,12 @@
+using Bulkivore.Api.Endpoints;
 using Bulkivore.Api.Endpoints.Common;
 using Bulkivore.Api.Endpoints.Common.Middlewares;
 using Bulkivore.Api.Infrastructure;
 using FastEndpoints;
 using FastEndpoints.OpenApi;
 using Scalar.AspNetCore;
+
+const string corsPolicyName = "frontend";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +15,7 @@ builder.AddServiceDefaults();
 builder.AddKeyedNpgsqlDataSource("bulkivore-test-db");
 
 builder.Services.AddInfrastructure();
+builder.Services.AddCustomCors(builder.Configuration, corsPolicyName);
 builder.Services.AddFastEndpoints()
     .OpenApiDocument(o =>
     {
@@ -33,6 +37,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseDefaultExceptionHandler()
+    .UseCors(corsPolicyName)
     .UseFastEndpoints(config =>
     {
         config.Serializer.Options.Configure();
