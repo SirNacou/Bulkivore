@@ -3,11 +3,6 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 
 const mainItems: NavigationMenuItem[] = [
   {
-    label: 'Home',
-    icon: 'i-lucide-house',
-    to: '/'
-  },
-  {
     label: 'Imports',
     icon: 'i-lucide-upload',
     to: '/imports'

@@ -38,7 +38,9 @@ export default defineNuxtConfig({
     }
   },
   icon: {
-    collections: ["lucide"]
+    clientBundle: {
+      scan: true
+    }
   },
   nuxtQuery: {
     autoImports: true,
