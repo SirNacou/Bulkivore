@@ -1,3 +1,7 @@
 {
-  "js/ts.experimental.useTsgo": false
+  "files.autoSave": "onFocusChange",
+  "editor.fontFamily": "Maple Mono, 'Courier New', monospace",
+  "editor.fontLigatures": false,
+  "js/ts.experimental.useTsgo": false,
+  "js/ts.tsdk.path": "node_modules\\typescript\\lib",
 }

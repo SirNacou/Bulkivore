@@ -9,7 +9,8 @@
       "type": "devtools",
       "request": "launch",
       "projectPath": "src/Bulkivore.AppHost/Bulkivore.AppHost.csproj",
-      "withDebug": true
+      "withDebug": true,
+      "launchBrowser": true
     },
     {
       "name": "ReSharper: Launch .NET Project",

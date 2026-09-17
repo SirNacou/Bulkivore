@@ -21,10 +21,7 @@ builder.Services.AddFastEndpoints()
     {
         o.DocumentName = "v1";
         o.ShortSchemaNames = true;
-        o.ConfigureOpenApi = options =>
-        {
-            options.MapVogenTypesInBulkivore_Api();
-        };
+        o.ConfigureOpenApi = options => options.MapVogenTypesInBulkivore_Api();
     });
 
 var app = builder.Build();
