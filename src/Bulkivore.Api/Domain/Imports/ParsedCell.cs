@@ -1,7 +1,7 @@
 using Bulkivore.Api.Domain.Schema;
 using Dunet;
 
-namespace Bulkivore.Api.Domain.Ingestion;
+namespace Bulkivore.Api.Domain.Imports;
 
 [Union]
 public partial record ParsedCell

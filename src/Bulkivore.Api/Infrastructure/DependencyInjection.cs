@@ -2,8 +2,8 @@ using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using Bulkivore.Api.Domain.Common.Resilience;
-using Bulkivore.Api.Domain.Ingestion;
-using Bulkivore.Api.Domain.Ingestion.Ports;
+using Bulkivore.Api.Domain.Imports;
+using Bulkivore.Api.Domain.Imports.Ports;
 using Bulkivore.Api.Domain.Schema;
 using Bulkivore.Api.Infrastructure.Configuration;
 using Bulkivore.Api.Infrastructure.Persistence;
@@ -68,7 +68,6 @@ public static class DependencyInjection
             // Ports & Adapters
             services.AddSingleton<IFileStorage, S3FileStorage>();
             services.AddSingleton<ISchemaInspector, PostgresSchemaInspector>();
-            services.AddSingleton<IStreamingHeaderReader, MiniExcelHeaderReader>();
             services.AddSingleton<IColumnMatcher, FuzzyColumnMatcher>();
             services.AddSingleton<IRetryService, RetryService>();
 

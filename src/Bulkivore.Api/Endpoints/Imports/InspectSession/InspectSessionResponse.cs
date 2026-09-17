@@ -1,5 +1,5 @@
-using Bulkivore.Api.Domain.Ingestion;
-using Bulkivore.Api.Domain.Ingestion.Ports;
+using Bulkivore.Api.Domain.Imports;
+using Bulkivore.Api.Domain.Imports.Ports;
 using Bulkivore.Api.Domain.Schema;
 
 namespace Bulkivore.Api.Endpoints.Imports.InspectSession;

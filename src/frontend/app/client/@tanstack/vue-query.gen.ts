@@ -16,7 +16,6 @@ import {
     getImportSession,
     getTableSchema,
     initializeSession,
-    inspectHeaders,
     inspectSession,
     listImports,
     type Options,
@@ -36,9 +35,6 @@ import type {
     InitializeSessionData,
     InitializeSessionError,
     InitializeSessionResponse2,
-    InspectHeadersData,
-    InspectHeadersError,
-    InspectHeadersResponse2,
     InspectSessionData,
     InspectSessionResponse2,
     ListImportsData,
@@ -399,30 +395,6 @@ export const setImportMappingsMutation = (
     > = {
         mutationFn: async (fnOptions) => {
             const { data } = await setImportMappings({
-                ...options,
-                ...fnOptions,
-                throwOnError: true,
-            });
-            return data;
-        },
-    };
-    return mutationOptions;
-};
-
-export const inspectHeadersMutation = (
-    options?: Partial<Options<InspectHeadersData>>,
-): UseMutationOptions<
-    InspectHeadersResponse2,
-    InspectHeadersError,
-    Options<InspectHeadersData>
-> => {
-    const mutationOptions: UseMutationOptions<
-        InspectHeadersResponse2,
-        InspectHeadersError,
-        Options<InspectHeadersData>
-    > = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await inspectHeaders({
                 ...options,
                 ...fnOptions,
                 throwOnError: true,

@@ -1,5 +1,5 @@
 using System.Reflection;
-using Bulkivore.Api.Domain.Ingestion;
+using Bulkivore.Api.Domain.Imports;
 using Bulkivore.Api.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 

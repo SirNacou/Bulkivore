@@ -121,15 +121,6 @@ export type InitializeSessionResponse = {
     expiresAt: string;
 };
 
-export type InspectHeadersRequest = {
-    file: Blob | File;
-};
-
-export type InspectHeadersResponse = {
-    headers: IReadOnlyListOfString;
-    totalColumns: number;
-};
-
 export type InspectSessionResponse = {
     sessionId: ImportSessionId;
     status: ImportSessionStatus;
@@ -440,37 +431,6 @@ export type SetImportMappingsResponses = {
 
 export type SetImportMappingsResponse2 =
     SetImportMappingsResponses[keyof SetImportMappingsResponses];
-
-export type InspectHeadersData = {
-    body: InspectHeadersRequest;
-    path?: never;
-    query?: never;
-    url: "/api/ingestion/inspect-headers";
-};
-
-export type InspectHeadersErrors = {
-    /**
-     * Bad Request
-     */
-    400: ProblemDetails;
-    /**
-     * Unauthorized
-     */
-    401: unknown;
-};
-
-export type InspectHeadersError =
-    InspectHeadersErrors[keyof InspectHeadersErrors];
-
-export type InspectHeadersResponses = {
-    /**
-     * Success
-     */
-    200: InspectHeadersResponse;
-};
-
-export type InspectHeadersResponse2 =
-    InspectHeadersResponses[keyof InspectHeadersResponses];
 
 export type GetTableSchemaData = {
     body?: never;

@@ -1,4 +1,4 @@
-using Bulkivore.Api.Domain.Ingestion;
+using Bulkivore.Api.Domain.Imports;
 using Bulkivore.Api.Endpoints.Imports.CommitImport;
 using Bulkivore.Api.Endpoints.Imports.InitializeSession;
 using Bulkivore.Api.Endpoints.Imports.SetImportMappings;

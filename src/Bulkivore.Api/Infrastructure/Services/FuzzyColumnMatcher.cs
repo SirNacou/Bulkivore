@@ -1,4 +1,4 @@
-using Bulkivore.Api.Domain.Ingestion.Ports;
+using Bulkivore.Api.Domain.Imports.Ports;
 using Bulkivore.Api.Domain.Schema;
 using Raffinert.FuzzySharp;
 using Raffinert.FuzzySharp.PreProcess;

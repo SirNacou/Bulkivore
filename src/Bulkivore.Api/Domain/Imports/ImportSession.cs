@@ -1,7 +1,7 @@
 using Bulkivore.Api.Domain.Common;
 using Vogen;
 
-namespace Bulkivore.Api.Domain.Ingestion;
+namespace Bulkivore.Api.Domain.Imports;
 
 [ValueObject<Guid>]
 public readonly partial struct ImportSessionId

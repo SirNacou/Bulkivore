@@ -1,6 +1,6 @@
 global using ErrorOr;
 global using FluentValidation;
-global using static Bulkivore.Api.Domain.Ingestion.ParsedCell;
+global using static Bulkivore.Api.Domain.Imports.ParsedCell;
 global using MiniExcel = MiniExcelLibs.MiniExcel;
 using Vogen;
 

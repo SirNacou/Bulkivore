@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Bulkivore.Api.Domain.Ingestion;
+using Bulkivore.Api.Domain.Imports;
 
 namespace Bulkivore.Api.Domain.Schema;
 

@@ -1,6 +1,6 @@
 using Vogen;
 
-namespace Bulkivore.Api.Domain.Ingestion;
+namespace Bulkivore.Api.Domain.Imports;
 
 public enum FileFormat { Csv, Xlsx }
 

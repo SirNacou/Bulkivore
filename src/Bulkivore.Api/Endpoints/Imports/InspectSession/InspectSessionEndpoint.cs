@@ -1,5 +1,5 @@
 using Bulkivore.Api.Domain.Common.Resilience;
-using Bulkivore.Api.Domain.Ingestion.Ports;
+using Bulkivore.Api.Domain.Imports.Ports;
 using Bulkivore.Api.Domain.Schema;
 using Bulkivore.Api.Endpoints.Common;
 using Bulkivore.Api.Infrastructure.Persistence;
@@ -73,17 +73,35 @@ public class InspectSessionEndpoint(
             var rows = MiniExcel.QueryAsync(tempFilePath, useHeaderRow: true, cancellationToken: ct)
                 .Cast<IDictionary<string, object>>();
 
-            await foreach (var dict in rows)
+            try
             {
-                if (headers.Count == 0)
+                await foreach (var dict in rows.WithCancellation(ct))
                 {
-                    headers.AddRange(dict.Keys.Where(k => !string.IsNullOrWhiteSpace(k)));
+                    if (headers.Count == 0)
+                    {
+                        headers.AddRange(dict.Keys.Where(k => !string.IsNullOrWhiteSpace(k)));
+                    }
+
+                    previewRows.Add(new Dictionary<string, object>(dict, StringComparer.OrdinalIgnoreCase));
+
+                    if (previewRows.Count >= 20)
+                        break;
                 }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning(ex, "Uploaded file could not be parsed for import session: {SessionId}", session.Id);
+                ThrowError(
+                    "File could not be parsed as a spreadsheet. Upload a valid .csv or .xlsx file and try again.",
+                    400);
+            }
 
-                previewRows.Add(new Dictionary<string, object>(dict, StringComparer.OrdinalIgnoreCase));
-
-                if (previewRows.Count >= 20)
-                    break;
+            if (headers.Count == 0)
+            {
+                logger.LogWarning("No column headers found for import session: {SessionId}", session.Id);
+                ThrowError(
+                    "No column headers found in the first row of the file. Add a header row and upload again.",
+                    400);
             }
         }
         finally

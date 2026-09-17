@@ -3,7 +3,7 @@
 Page routes for the Bulkivore Nuxt frontend, phased by page in dependency order.
 Each phase is independently shippable and leaves no new dead links in the nav.
 
-Backend reference: `POST /api/imports/initialize` → `POST /api/ingestion/inspect-headers`
+Backend reference: `POST /api/imports/initialize` → S3 PUT to `uploadUrl`
 → `GET /api/imports/{id}/inspect` → `POST /api/imports/{id}/mappings`
 → `POST /api/imports/{id}/commit`, plus `GET /api/imports` (paged list),
 `GET /api/imports/{id}` (detail), `GET /api/imports/{id}/errors` + `/errors/export`,
@@ -36,14 +36,22 @@ Backend reference: `POST /api/imports/initialize` → `POST /api/ingestion/inspe
 - `app/layouts/default.vue`: `Home` nav item removed.
 - The "New import" button stays **disabled** until Phase 2 lands.
 
-## Phase 2 — New import wizard (`/imports/new`)
+## Phase 2 — New import wizard (`/imports/new`) ✅ Done
+
+Single page + `UStepper`, session id held in component state. Refresh mid-wizard
+restarts (accepted v1 behavior; backend sessions are cheap).
+
+`POST /api/ingestion/inspect-headers` was deleted as part of this phase (pre-session
+leftover, superseded by session inspect). Upload validates extension/size/empty
+client-side; file content is validated server-side by the inspect step, which now
+returns `400` (instead of a leaked `500`) for unparseable or headerless files.
 
 Single page + `UStepper`, session id held in component state. Refresh mid-wizard
 restarts (accepted v1 behavior; backend sessions are cheap).
 
 | Step | Backend |
 |---|---|
-| Upload | `POST /imports/initialize` + S3 PUT to `uploadUrl` + `POST /ingestion/inspect-headers` |
+| Upload | `POST /imports/initialize` + S3 PUT to `uploadUrl` (client-side ext/size check; content validated at Inspect) |
 | Inspect | `GET /imports/{id}/inspect` (headers, suggested mappings, preview rows) |
 | Map | `POST /imports/{id}/mappings` |
 | Review & commit | `POST /imports/{id}/commit` → navigate to `/imports/[id]` |

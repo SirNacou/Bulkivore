@@ -1,6 +1,6 @@
-namespace Bulkivore.Api.Domain.Ingestion;
+namespace Bulkivore.Api.Domain.Imports;
 
-public static class IngestionErrors
+public static class ImportErrors
 {
     public static Error CannotApplyMappingFromStatus(ImportSessionStatus status) =>
         Error.Conflict(description: $"Cannot apply mappings while session is in '{status}' status.");

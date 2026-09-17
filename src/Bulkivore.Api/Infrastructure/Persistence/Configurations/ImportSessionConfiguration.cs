@@ -1,4 +1,4 @@
-using Bulkivore.Api.Domain.Ingestion;
+using Bulkivore.Api.Domain.Imports;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

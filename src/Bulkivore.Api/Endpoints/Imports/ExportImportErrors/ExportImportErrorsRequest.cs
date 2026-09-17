@@ -1,4 +1,4 @@
-using Bulkivore.Api.Domain.Ingestion;
+using Bulkivore.Api.Domain.Imports;
 
 namespace Bulkivore.Api.Endpoints.Imports.ExportImportErrors;
 

@@ -1,6 +1,6 @@
 using Bulkivore.Api.Domain.Schema;
 
-namespace Bulkivore.Api.Domain.Ingestion.Ports;
+namespace Bulkivore.Api.Domain.Imports.Ports;
 
 public sealed record ColumnMatch(
     string SourceHeader,

@@ -5,17 +5,9 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch App Host",
-      "type": "devtools",
-      "request": "launch",
-      "projectPath": "src/Bulkivore.AppHost/Bulkivore.AppHost.csproj",
-      "withDebug": true,
-      "launchBrowser": true
-    },
-    {
       "name": "ReSharper: Launch .NET Project",
       "type": "dotnet",
-      "request": "launch"
+      "request": "launch",
     }
   ]
 }

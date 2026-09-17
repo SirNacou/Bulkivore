@@ -1,4 +1,4 @@
-namespace Bulkivore.Api.Domain.Ingestion;
+namespace Bulkivore.Api.Domain.Imports;
 
 public enum ImportSessionStatus
 {
@@ -17,11 +17,11 @@ public static class ImportSessionStatusExtensions
             (status, nextStatus) switch
             {
                 (not (ImportSessionStatus.Initialized or ImportSessionStatus.Mapped), ImportSessionStatus.Mapped) =>
-                    IngestionErrors.CannotApplyMappingFromStatus(status),
+                    ImportErrors.CannotApplyMappingFromStatus(status),
                 (not ImportSessionStatus.Mapped, ImportSessionStatus.Ingesting) =>
-                    IngestionErrors.CannotCommitSessionFromStatus(status),
+                    ImportErrors.CannotCommitSessionFromStatus(status),
                 (not ImportSessionStatus.Ingesting, ImportSessionStatus.Completed) =>
-                    IngestionErrors.CannotCompleteSessionFromStatus(status),
+                    ImportErrors.CannotCompleteSessionFromStatus(status),
                 _ => Result.Success
             };
     }

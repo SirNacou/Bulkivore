@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using Bulkivore.Api.Domain.Ingestion;
-using Bulkivore.Api.Domain.Ingestion.Ports;
+using Bulkivore.Api.Domain.Imports;
+using Bulkivore.Api.Domain.Imports.Ports;
 using Bulkivore.Api.Domain.Schema;
 using Bulkivore.Api.Endpoints.Common;
 using Bulkivore.Api.Infrastructure.Persistence;

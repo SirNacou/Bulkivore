@@ -5,7 +5,6 @@ import * as z from "zod";
 import {
     type Client,
     type ClientMeta,
-    formDataBodySerializer,
     type Options as Options2,
     type RequestResult,
     type TDataShape,
@@ -29,9 +28,6 @@ import type {
     InitializeSessionData,
     InitializeSessionErrors,
     InitializeSessionResponses,
-    InspectHeadersData,
-    InspectHeadersErrors,
-    InspectHeadersResponses,
     InspectSessionData,
     InspectSessionErrors,
     InspectSessionResponses,
@@ -56,8 +52,6 @@ import {
     zGetTableSchemaResponse,
     zInitializeSessionBody,
     zInitializeSessionResponse2,
-    zInspectHeadersBody,
-    zInspectHeadersResponse2,
     zInspectSessionPath,
     zInspectSessionResponse2,
     zListImportsQuery,
@@ -287,33 +281,6 @@ export const setImportMappings = <ThrowOnError extends boolean = false>(
         ...options,
         headers: {
             "Content-Type": "application/json",
-            ...options.headers,
-        },
-    });
-
-export const inspectHeaders = <ThrowOnError extends boolean = false>(
-    options: Options<InspectHeadersData, ThrowOnError>,
-): RequestResult<InspectHeadersResponses, InspectHeadersErrors, ThrowOnError> =>
-    (options.client ?? client).post<
-        InspectHeadersResponses,
-        InspectHeadersErrors,
-        ThrowOnError
-    >({
-        ...formDataBodySerializer,
-        requestValidator: async (data) =>
-            await z
-                .object({
-                    body: zInspectHeadersBody,
-                    path: z.never().optional(),
-                    query: z.never().optional(),
-                })
-                .parseAsync(data),
-        responseTransformer: async (data) =>
-            await zInspectHeadersResponse2.parseAsync(data),
-        url: "/api/ingestion/inspect-headers",
-        ...options,
-        headers: {
-            "Content-Type": null,
             ...options.headers,
         },
     });

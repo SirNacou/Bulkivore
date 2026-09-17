@@ -1,4 +1,4 @@
-using Bulkivore.Api.Domain.Ingestion;
+using Bulkivore.Api.Domain.Imports;
 using Bulkivore.Api.Endpoints.Imports.ListImports;
 using Bulkivore.IntegrationTests.Common;
 using Bulkivore.IntegrationTests.Fixtures;

@@ -180,18 +180,6 @@ export type InitializeSessionResponseZodOutput = z.output<
     typeof zInitializeSessionResponse
 >;
 
-export const zInspectHeadersRequest = z.object({
-    file: z.string(),
-});
-
-export type InspectHeadersRequestZodInput = z.input<
-    typeof zInspectHeadersRequest
->;
-
-export type InspectHeadersRequestZodOutput = z.output<
-    typeof zInspectHeadersRequest
->;
-
 export const zIReadOnlyListOfColumnMapping = z.array(zColumnMapping);
 
 export type IReadOnlyListOfColumnMappingZodInput = z.input<
@@ -295,26 +283,6 @@ export type IReadOnlyListOfStringZodInput = z.input<
 
 export type IReadOnlyListOfStringZodOutput = z.output<
     typeof zIReadOnlyListOfString
->;
-
-export const zInspectHeadersResponse = z.object({
-    headers: zIReadOnlyListOfString,
-    totalColumns: z
-        .int()
-        .min(-2147483648, {
-            error: "Invalid value: Expected int32 to be >= -2147483648",
-        })
-        .max(2147483647, {
-            error: "Invalid value: Expected int32 to be <= 2147483647",
-        }),
-});
-
-export type InspectHeadersResponseZodInput = z.input<
-    typeof zInspectHeadersResponse
->;
-
-export type InspectHeadersResponseZodOutput = z.output<
-    typeof zInspectHeadersResponse
 >;
 
 export const zInspectSessionResponse = z.object({
@@ -807,25 +775,6 @@ export type SetImportMappingsResponseZodInput2 = z.input<
 
 export type SetImportMappingsResponseZodOutput2 = z.output<
     typeof zSetImportMappingsResponse2
->;
-
-export const zInspectHeadersBody = zInspectHeadersRequest;
-
-export type InspectHeadersBodyZodInput = z.input<typeof zInspectHeadersBody>;
-
-export type InspectHeadersBodyZodOutput = z.output<typeof zInspectHeadersBody>;
-
-/**
- * Success
- */
-export const zInspectHeadersResponse2 = zInspectHeadersResponse;
-
-export type InspectHeadersResponseZodInput2 = z.input<
-    typeof zInspectHeadersResponse2
->;
-
-export type InspectHeadersResponseZodOutput2 = z.output<
-    typeof zInspectHeadersResponse2
 >;
 
 export const zGetTableSchemaPath = z.object({

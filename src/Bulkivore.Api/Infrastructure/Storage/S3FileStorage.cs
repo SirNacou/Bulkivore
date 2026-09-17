@@ -1,7 +1,7 @@
 using System.Net;
 using Amazon.S3;
 using Amazon.S3.Model;
-using Bulkivore.Api.Domain.Ingestion.Ports;
+using Bulkivore.Api.Domain.Imports.Ports;
 using Bulkivore.Api.Infrastructure.Configuration;
 using Microsoft.Extensions.Options;
 

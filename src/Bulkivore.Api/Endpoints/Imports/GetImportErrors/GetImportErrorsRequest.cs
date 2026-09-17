@@ -1,4 +1,4 @@
-using Bulkivore.Api.Domain.Ingestion;
+using Bulkivore.Api.Domain.Imports;
 using FastEndpoints;
 
 namespace Bulkivore.Api.Endpoints.Imports.GetImportErrors;

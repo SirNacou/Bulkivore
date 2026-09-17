@@ -36,22 +36,19 @@ public class SetImportMappingsEndpoint(AppDbContext dbContext, ISchemaInspector 
         {
             return Error.Validation(
                 description:
-                $"Target column(s) do not exist in table '{session.TargetTable}': {string.Join(", ", invalidTargets)}"
-            );
+                $"Target column(s) do not exist in table '{session.TargetTable}': {string.Join(", ", invalidTargets)}");
         }
 
         var unwritableTargets = req
             .Mappings.Select(m => m.TargetColumn)
             .Where(target =>
-                tableSchema.TryGetColumn(target, out var metadata) && !metadata.IsWritable
-            )
+                tableSchema.TryGetColumn(target, out var metadata) && !metadata.IsWritable)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         if (unwritableTargets.Count > 0)
         {
             return Error.Validation(
-                description: $"Cannot map to read-only or computed column(s): {string.Join(", ", unwritableTargets)}"
-            );
+                description: $"Cannot map to read-only or computed column(s): {string.Join(", ", unwritableTargets)}");
         }
 
         var requiredColumns = tableSchema
@@ -69,7 +66,6 @@ public class SetImportMappingsEndpoint(AppDbContext dbContext, ISchemaInspector 
         return new SetImportMappingsResponse(
             session.Id,
             session.Status,
-            req.Mappings.Count
-        );
+            req.Mappings.Count);
     }
 }
