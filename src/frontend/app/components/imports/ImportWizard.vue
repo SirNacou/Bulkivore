@@ -116,9 +116,9 @@ function handleMappingsComplete(saved: ColumnMapping[]): void {
 
     <div v-else-if="step === 'inspect'" class="flex flex-col gap-4">
       <div v-if="isInspectPending" class="flex flex-col gap-2">
-        <USkeleton class="h-8 w-full" />
-        <USkeleton class="h-32 w-full" />
-        <p class="text-sm text-muted">Reading headers and preview rows…</p>
+        <USkeleton class="w-full h-8" />
+        <USkeleton class="w-full h-32" />
+        <p class="text-muted text-sm">Reading headers and preview rows…</p>
       </div>
 
       <template v-else-if="isInspectError">
@@ -127,14 +127,13 @@ function handleMappingsComplete(saved: ColumnMapping[]): void {
             { label: 'Try again', icon: 'i-lucide-refresh-cw', onClick: () => refetchInspect() }
           ]" />
         <div class="flex justify-start">
-          <UButton variant="ghost" icon="i-lucide-arrow-left" label="Back to upload"
-            @click="handleBackToUpload" />
+          <UButton variant="ghost" icon="i-lucide-arrow-left" label="Back to upload" @click="handleBackToUpload" />
         </div>
       </template>
 
       <template v-else-if="inspectData">
         <div>
-          <h3 class="font-medium mb-2">Suggested mappings</h3>
+          <h3 class="mb-2 font-medium">Suggested mappings</h3>
           <UTable :data="[...inspectData.suggestedMappings]" :columns="suggestedColumns">
             <template #targetColumn-cell="{ row }">
               {{ row.original.targetColumn || '—' }}
@@ -147,26 +146,22 @@ function handleMappingsComplete(saved: ColumnMapping[]): void {
         </div>
 
         <div>
-          <h3 class="font-medium mb-2">Preview (first {{ previewRows.length }} rows)</h3>
-          <UTable :data="previewRows" :columns="previewColumns"
-            class="max-h-[calc(100dvh-30rem)]" />
+          <h3 class="mb-2 font-medium">Preview (first {{ previewRows.length }} rows)</h3>
+          <UTable :data="previewRows" :columns="previewColumns" class="max-h-[calc(100dvh-30rem)]" />
         </div>
 
         <div class="flex justify-between">
-          <UButton variant="ghost" icon="i-lucide-arrow-left" label="Back to upload"
-            @click="handleBackToUpload" />
-          <UButton icon="i-lucide-arrow-right" label="Continue to mapping"
-            @click="step = 'map'" />
+          <UButton variant="ghost" icon="i-lucide-arrow-left" label="Back to upload" @click="handleBackToUpload" />
+          <UButton icon="i-lucide-arrow-right" label="Continue to mapping" @click="step = 'map'" />
         </div>
       </template>
     </div>
 
-    <MappingEditor v-else-if="step === 'map' && inspectData" :session-id="sessionId"
-      :headers="[...inspectData.headers]" :target-columns="[...inspectData.targetColumns]"
-      :suggested-mappings="[...inspectData.suggestedMappings]"
+    <MappingEditor v-else-if="step === 'map' && inspectData" :session-id="sessionId" :headers="[...inspectData.headers]"
+      :target-columns="[...inspectData.targetColumns]" :suggested-mappings="[...inspectData.suggestedMappings]"
       @back="step = 'inspect'" @complete="handleMappingsComplete" />
 
-    <ReviewStep v-else-if="step === 'review'" :session-id="sessionId" :target-table="targetTable"
-      :file-name="fileName" :mappings="mappings" @back="step = 'map'" />
+    <ReviewStep v-else-if="step === 'review'" :session-id="sessionId" :target-table="targetTable" :file-name="fileName"
+      :mappings="mappings" @back="step = 'map'" />
   </div>
 </template>

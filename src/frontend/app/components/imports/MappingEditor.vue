@@ -126,13 +126,13 @@ async function handleSave(): Promise<void> {
       <div v-for="header in headers" :key="header" class="flex items-center gap-3">
         <div class="flex-1 min-w-0">
           <div class="font-medium truncate">{{ header }}</div>
-          <div v-if="suggestionBadge(header)" class="text-xs text-muted">
+          <div v-if="suggestionBadge(header)" class="text-muted text-xs">
             {{ suggestionBadge(header) }}
           </div>
         </div>
-        <UIcon name="i-lucide-arrow-right" class="size-4 shrink-0 text-muted" />
-        <USelectMenu v-model="selection[header]" :items="targetOptions" value-key="value"
-          class="w-64 shrink-0" :disabled="isSaving" />
+        <UIcon name="i-lucide-arrow-right" class="size-4 text-muted shrink-0" />
+        <USelectMenu v-model="selection[header]" :items="targetOptions" value-key="value" class="w-64 shrink-0"
+          :disabled="isSaving" />
       </div>
     </div>
 
@@ -141,8 +141,7 @@ async function handleSave(): Promise<void> {
       :description="errorMessage" />
 
     <div class="flex justify-between">
-      <UButton variant="ghost" icon="i-lucide-arrow-left" label="Back"
-        :disabled="isSaving" @click="emit('back')" />
+      <UButton variant="ghost" icon="i-lucide-arrow-left" label="Back" :disabled="isSaving" @click="emit('back')" />
       <UButton icon="i-lucide-arrow-right" label="Save & continue" :loading="isSaving"
         :disabled="validationError !== null" @click="handleSave" />
     </div>

@@ -1,18 +1,19 @@
 <Solution>
     <Folder Name="/SolutionItems/">
-        <File Path=".dockerignore"/>
+        <File Path=".dockerignore" />
         <File Path=".editorconfig" />
         <File Path=".gitignore" />
         <File Path="Directory.Build.props" />
-        <File Path="Taskfile.yml"/>
+        <File Path="Taskfile.yml" />
     </Folder>
     <Folder Name="/src/">
         <Project Path="src/Bulkivore.Api/Bulkivore.Api.csproj" />
         <Project Path="src/Bulkivore.AppHost/Bulkivore.AppHost.csproj" />
-        <Project Path="src/Bulkivore.MigrationService/Bulkivore.MigrationService.csproj"/>
+        <Project Path="src/Bulkivore.MigrationService/Bulkivore.MigrationService.csproj" />
         <Project Path="src/Bulkivore.ServiceDefaults/Bulkivore.ServiceDefaults.csproj" />
     </Folder>
     <Folder Name="/test/">
-        <Project Path="test/Bulkivore.IntegrationTests/Bulkivore.IntegrationTests.csproj"/>
+        <Project Path="test/Bulkivore.IntegrationTests/Bulkivore.IntegrationTests.csproj" />
+        <Project Path="test/Bulkivore.UnitTests/Bulkivore.UnitTests.csproj" />
     </Folder>
 </Solution>

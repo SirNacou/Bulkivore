@@ -26,6 +26,7 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
     public IReadOnlyList<RowError> RowErrors => _rowErrors;
     public string? ErrorMessage { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
+    public DateTimeOffset? IngestionStartedAt { get; private set; }
 
     private ImportSession(string tenantId, string targetTable, SourceFile file, string storageKey)
         : base(ImportSessionId.FromNewVersion7Guid())
@@ -100,7 +101,11 @@ public sealed class ImportSession : AggregateRoot<ImportSessionId>
     public ErrorOr<Success> StartIngesting() =>
         Status
             .CanTransitionTo(ImportSessionStatus.Ingesting)
-            .ThenDo(_ => Status = ImportSessionStatus.Ingesting);
+            .ThenDo(_ =>
+            {
+                Status = ImportSessionStatus.Ingesting;
+                IngestionStartedAt = DateTimeOffset.UtcNow;
+            });
 
     public ErrorOr<Success> Complete(int successRowCount, List<RowError> errors)
     {

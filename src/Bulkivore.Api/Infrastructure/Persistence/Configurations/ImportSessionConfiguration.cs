@@ -40,6 +40,8 @@ public class ImportSessionConfiguration : IEntityTypeConfiguration<ImportSession
             .Property(x => x.CreatedAt)
             .IsRequired();
 
+        builder.Property(x => x.IngestionStartedAt);
+
         builder.OwnsMany(x => x.ColumnMappings, owned => owned.ToJson());
 
         builder.OwnsMany(x => x.RowErrors, owned => owned.ToJson());

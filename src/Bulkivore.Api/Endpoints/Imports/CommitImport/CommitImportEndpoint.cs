@@ -138,7 +138,20 @@ public class CommitImportEndpoint(
             await writer.CompleteAsync(ct);
 
             session.Complete(successCount, rowErrors);
-            await dbContext.SaveChangesAsync(ct);
+            // Use a non-abortable token so a client disconnect at the last moment
+            // cannot lose the bookkeeping for a successfully completed import.
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // The client disconnected mid-import (the COPY transaction rolls back,
+            // so no partial rows are committed). Finalize the session with a
+            // non-abortable token; there is no client left to send a response to.
+            Logger.LogWarning(
+                "Import session {SessionId} canceled: client disconnected mid-ingestion.",
+                session.Id);
+            session.Fail("Import canceled: client disconnected.");
+            await dbContext.SaveChangesAsync(CancellationToken.None);
         }
         catch (Exception e)
         {
@@ -151,7 +164,9 @@ public class CommitImportEndpoint(
         {
             if (File.Exists(tempFilePath))
                 File.Delete(tempFilePath);
-            await TryDeleteStorageFileAsync(session.StorageKey, ct);
+            // Cleanup must not depend on the request token: it is already canceled
+            // when the client disconnects, which would always fail the S3 purge.
+            await TryDeleteStorageFileAsync(session.StorageKey, CancellationToken.None);
             stopWatch.Stop();
         }
 

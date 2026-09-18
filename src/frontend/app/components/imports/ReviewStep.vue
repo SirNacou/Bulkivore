@@ -14,7 +14,9 @@ const emit = defineEmits<{
   back: []
 }>()
 
-const commitMutation = useMutation(commitImportMutation())
+// Bulk imports can take far longer than the client's default 10s timeout,
+// so disable the timeout for this request only.
+const commitMutation = useMutation(commitImportMutation({ timeout: false }))
 const errorMessage = ref<string | null>(null)
 
 const isCommitting = computed(() => commitMutation.isPending.value)

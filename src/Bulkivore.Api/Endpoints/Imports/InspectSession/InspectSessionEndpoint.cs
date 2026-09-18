@@ -37,7 +37,7 @@ public class InspectSessionEndpoint(
             return;
         }
 
-        var retryOptions = new RetryOptions()
+        var retryOptions = new RetryOptions
         {
             MaxAttempts = 3,
             InitialDelay = TimeSpan.FromMilliseconds(400),
